@@ -2319,28 +2319,35 @@
     }
 
     function getPlayerStats(playerId) {
+      const allM = window._matches || [];
+      let played=0, wins=0, diff=0;
       // 1v1
-      const ms1v1=(window._matches||[]).filter(m=>m.format==='1v1'&&(m.joueur1Id===playerId||m.joueur2Id===playerId));
-      const wins1v1=ms1v1.filter(m=>m.gagnantId===playerId).length;
-      let diff=0;
+      const ms1v1 = allM.filter(m=>m.format==='1v1'&&(m.joueur1Id===playerId||m.joueur2Id===playerId));
+      played += ms1v1.length;
+      wins += ms1v1.filter(m=>m.gagnantId===playerId).length;
       ms1v1.forEach(m=>{diff+=m.joueur1Id===playerId?(m.score1-m.score2):(m.score2-m.score1);});
       // 1v1v1
-      const ms3=(window._matches||[]).filter(m=>m.format==='1v1v1'&&(m.joueurs||[]).includes(playerId));
-      const wins3=ms3.filter(m=>m.gagnantId===playerId).length;
+      const ms3 = allM.filter(m=>m.format==='1v1v1'&&(m.joueurs||[]).includes(playerId));
+      played += ms3.length;
+      wins += ms3.filter(m=>m.gagnantId===playerId).length;
       ms3.forEach(m=>{
         const idx=(m.joueurs||[]).indexOf(playerId);
         const myScore=(m.scores||[])[idx]??0;
         const allScores=m.scores||[];
         const winnerScore=Math.max(...allScores);
-        if(m.gagnantId===playerId){
-          const second=allScores.filter((_,i)=>i!==idx).reduce((a,b)=>Math.max(a,b),0);
-          diff+=(myScore-second);
-        } else {
-          diff+=(myScore-winnerScore);
-        }
+        if(m.gagnantId===playerId){const second=allScores.filter((_,i)=>i!==idx).reduce((a,b)=>Math.max(a,b),0);diff+=(myScore-second);}
+        else{diff+=(myScore-winnerScore);}
       });
-      const played=ms1v1.length+ms3.length;
-      const wins=wins1v1+wins3;
+      // 2v2
+      const ms2v2 = allM.filter(m=>m.format==='2v2'&&[...(m.equipe1||[]),...(m.equipe2||[])].includes(playerId));
+      played += ms2v2.length;
+      wins += ms2v2.filter(m=>m.gagnantEquipe===1?(m.equipe1||[]).includes(playerId):(m.equipe2||[]).includes(playerId)).length;
+      ms2v2.forEach(m=>{const inEq1=(m.equipe1||[]).includes(playerId);diff+=inEq1?(m.score1-m.score2):(m.score2-m.score1);});
+      // 3v3
+      const ms3v3 = allM.filter(m=>m.format==='3v3'&&[...(m.equipe1||[]),...(m.equipe2||[])].includes(playerId));
+      played += ms3v3.length;
+      wins += ms3v3.filter(m=>m.gagnantEquipe===1?(m.equipe1||[]).includes(playerId):(m.equipe2||[]).includes(playerId)).length;
+      ms3v3.forEach(m=>{const inEq1=(m.equipe1||[]).includes(playerId);diff+=inEq1?(m.score1-m.score2):(m.score2-m.score1);});
       const losses=played-wins;
       const winPct=played>0?Math.round((wins/played)*100):0;
       return{played,wins,losses,winPct,diff};
