@@ -626,7 +626,7 @@
     <div id="home-header" style="background:var(--navy);padding:env(safe-area-inset-top, 12px) 18px 18px;padding-top:max(env(safe-area-inset-top), 12px);transition:background 0.35s">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div id="ligue-changer-btn" onclick="changerLigueIfAllowed()" style="display:flex;align-items:center;gap:5px;cursor:pointer">
-          <div style="font-size:14px;font-weight:800;color:var(--accent)" id="ligue-nom-display">Ma ligue</div>
+          <div style="font-size:14px;font-weight:800;color:var(--accent)" id="ligue-nom-display"></div>
           <div style="font-size:15px;font-weight:700;color:var(--accent);opacity:0.8">↻</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
@@ -664,15 +664,12 @@
   </div>
     </div>
     <div id="content-tournoi" style="display:none;flex-direction:column;gap:0;padding:16px 16px 100px">
-      <button onclick="showPageTournoi('tournoi-parametrage')" style="width:100%;background:#fbbf24;color:#1a1400;border:none;border-radius:16px;padding:16px 20px;font-size:16px;font-weight:900;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 0 #d97706;margin-bottom:16px">
-        <div>
-          <div style="font-size:17px;font-weight:900">Nouveau tournoi</div>
-          <div style="font-size:11px;font-weight:600;opacity:.65;margin-top:1px">Lance la compétition !</div>
-        </div>
-        <div style="width:38px;height:38px;background:rgba(0,0,0,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">🏆</div>
-      </button>
-      <div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:8px">Tournois précédents</div>
-      <div id="tournoi-liste"><div style="background:#fff;border-radius:12px;padding:14px 16px;text-align:center;color:var(--text2);font-size:13px;font-weight:600;box-shadow:var(--shadow)">Aucun tournoi pour l'instant</div></div>
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;min-height:300px">
+        <div style="font-size:56px;margin-bottom:16px">🏗️</div>
+        <div style="font-size:20px;font-weight:900;color:#1a1d2e;margin-bottom:8px">Mode Tournoi</div>
+        <div style="font-size:13px;color:var(--text2);font-weight:600;line-height:1.6;margin-bottom:20px">En cours de développement<br/>Bientôt disponible !</div>
+        <div onclick="toggleAppMode()" style="background:var(--bg3);border-radius:12px;padding:10px 18px;font-size:13px;font-weight:700;color:var(--text2);cursor:pointer">← Retour Ligue</div>
+      </div>
     </div>
 
     <!-- PAGE PARAMÉTRAGE TOURNOI (WIZARD) -->
@@ -1724,7 +1721,7 @@
       document.getElementById(pageId).classList.add('active');
       const isFullscreen = FULLSCREEN_PAGES.includes(pageId);
       // header géré inline dans page-home
-      const isTournoiMode = window._appMode === 'tournoi' && pageId === 'page-home';
+      const isTournoiMode = false;
       document.getElementById('bottom-nav').style.display = (isFullscreen || isTournoiMode) ? 'none' : '';
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
       const navMap = {'page-home':'nav-home','page-ranking':'nav-ranking','page-players':'nav-players','page-stats':'nav-stats','page-settings':'nav-stats'};
@@ -2261,12 +2258,15 @@
         const gnames2 = {};
         ids2v2.forEach(id=>{if(gn2[id])gnames2[id]=gn2[id];});
         if(Object.keys(gnames2).length) matchData2v2.guestNames = gnames2;
-        matchData2v2.pepDeltas = calculerPEP_equipe(matchData2v2, window._players||[]);
         matchData2v2.isBourre = document.getElementById('check-bourre-2v2')?.checked||false;
+        const _hasGuest2v2 = matchHasGuest([j1id,j2id,j3id,j4id]);
+        // Calculer les deltas AVANT _addDoc pour capturer les scores actuels
+        const _deltas2v2 = _hasGuest2v2 ? null : calculerPEP_equipe(matchData2v2, window._players||[]);
+        const _players2v2snap = _hasGuest2v2 ? null : [...(window._players||[])];
+        matchData2v2.pepDeltas = _deltas2v2;
         if (!window._colParties) { showToast('⚠️ Rejoins une ligue dabord !'); return; }
         await window._addDoc(window._colParties(), matchData2v2);
-        const _hasGuest2v2 = matchHasGuest([j1id,j2id,j3id,j4id]);
-        if (!_hasGuest2v2) { await appliquerPEP(calculerPEP_equipe(matchData2v2,window._players||[]),window._players||[],'2v2'); }
+        if (!_hasGuest2v2) { await appliquerPEP(_deltas2v2, _players2v2snap, '2v2'); }
         showPage('page-home'); showToast(_hasGuest2v2 ? '🎯 Partie enregistrée · PEP non comptabilisé (invité)' : '🎯 Partie 2v2 enregistrée !'); if(s1===0||s2===0){setTimeout(() => window.showFanny('le perdant'), 600);}
       } catch(e) {
         document.getElementById('score-2v2-error').textContent='Erreur : '+e.message;
@@ -3643,7 +3643,7 @@
       const matches = window._matches || [];
       const formats = ['1v1','1v1v1','2v2','3v3'];
       const weights = {'1v1':1.0,'1v1v1':1.0,'2v2':0.8,'3v3':0.6};
-      const MIN_PARTIES = 1; // 1 partie suffit pour activer un format
+      const MIN_PARTIES = 3; // 3 parties minimum pour qu'un format compte dans le général
 
       let totalWeight = 0;
       let totalScore = 0;
@@ -3705,9 +3705,10 @@
             const badge = getPepBadge(p.pep);
             const isLast = i === players.length - 1;
             const numColor = i === 0 ? 'var(--gold)' : 'var(--text2)';
-            const stats = getPlayerStatsByFormat(p.id, format||'pep');
-            const wins = stats.wins;
-            const losses = stats.played - stats.wins;
+            // Si played/wins déjà calculés avec seuil (classement général), les utiliser
+            const stats = (format==='pep' && p.played !== undefined) ? p : getPlayerStatsByFormat(p.id, format||'pep');
+            const wins = stats.wins || 0;
+            const losses = (stats.played || 0) - (stats.wins || 0);
             return `<div onclick="openPlayerPage('${p.id}')"
               style="display:grid;grid-template-columns:28px 36px 1fr 32px 32px 32px 52px;align-items:center;gap:4px;padding:9px 12px;cursor:pointer;${isLast?'':'border-bottom:1px solid var(--border)'}">
               <div style="font-size:12px;font-weight:800;color:${numColor};text-align:center">${i+1}</div>
@@ -3737,10 +3738,39 @@
     }
 
     function renderPepClassement(container) {
+      const MIN_P = 3;
+      const allMatches = window._matches || [];
       const players = (window._players||[])
-        .map(p => { const g = calcPepGeneral(p); return {...p, pep: g.score, pepFormats: g.formats}; })
+        .map(p => {
+          const g = calcPepGeneral(p);
+          // Calculer V/D uniquement sur les formats avec >= MIN_P parties
+          // V/D : tous les formats avec >= MIN_P parties
+          const fmts = ['1v1','1v1v1','2v2','3v3'];
+          let played = 0, wins = 0;
+          fmts.forEach(fmt => {
+            const ms = allMatches.filter(m => {
+              if (m.format !== fmt) return false;
+              if (fmt==='1v1') return m.joueur1Id===p.id||m.joueur2Id===p.id;
+              if (fmt==='1v1v1') return (m.joueurs||[]).includes(p.id);
+              return [...(m.equipe1||[]),...(m.equipe2||[])].includes(p.id);
+            });
+            if (ms.length >= MIN_P) {
+              played += ms.length;
+              wins += ms.filter(m => {
+                if (fmt==='1v1'||fmt==='1v1v1') return m.gagnantId===p.id;
+                return m.gagnantEquipe===1?(m.equipe1||[]).includes(p.id):(m.equipe2||[]).includes(p.id);
+              }).length;
+            }
+          });
+          return {...p, pep: g.score, pepFormats: g.formats, played, wins, losses: played-wins, winPct: played>0?Math.round(wins/played*100):0};
+        })
         .sort((a,b) => b.pep - a.pep);
-      renderTableClassement(container, players, true, 'pep');
+      // Phrase d'info sur le seuil
+      const infoHtml = '<div style="font-size:11px;color:var(--text2);font-weight:600;text-align:center;padding:8px 16px 4px;line-height:1.5">Un format compte dans le général à partir de 3 parties jouées dans ce mode</div>';
+      container.innerHTML = infoHtml;
+      const sub = document.createElement('div');
+      container.appendChild(sub);
+      renderTableClassement(sub, players, true, 'pep');
     }
 
     
@@ -4031,12 +4061,15 @@
                   : format === '2v2' ? 'pepScore_2v2'
                   : format === '3v3' ? 'pepScore_3v3'
                   : 'pepScore'; // fallback
+      console.log('[PEP] format:', format, 'field:', field, 'deltas:', deltas);
       for (const [id, delta] of Object.entries(deltas)) {
         const player = players.find(p => p.id === id);
-        if (!player) continue;
+        if (!player) { console.log('[PEP] joueur introuvable:', id); continue; }
         const current = player[field] ?? 1000;
         const newScore = Math.max(0, Math.min(2000, current + delta));
+        console.log('[PEP]', player.nom, current, '+', delta, '=', newScore);
         if (window._docJoueur) await window._updateDoc(window._docJoueur(id), { [field]: newScore });
+        else console.log('[PEP] _docJoueur manquant !');
       }
     }
     window.appliquerPEP = appliquerPEP;
@@ -6036,13 +6069,14 @@
           score1:s1,score2:s2,gagnantEquipe:s1>s2?1:2,date:Date.now(),playerNames:_pn,
           isBourre:document.getElementById('check-bourre-3v3')?.checked||false
         };
-        matchData3v3.pepDeltas = calculerPEP_equipe(matchData3v3, window._players||[]);
         matchData3v3.isBourre = document.getElementById('check-bourre-3v3')?.checked||false;
+        const _hasGuest3v3 = matchHasGuest([j1,j2,j3,j4,j5,j6]);
+        const deltas3v3 = _hasGuest3v3 ? null : calculerPEP_equipe(matchData3v3, window._players||[]);
+        const _players3v3snap = _hasGuest3v3 ? null : [...(window._players||[])];
+        matchData3v3.pepDeltas = deltas3v3;
         if (!window._colParties) { showToast('⚠️ Rejoins une ligue dabord !'); return; }
         await window._addDoc(window._colParties(), matchData3v3);
-        const deltas3v3 = calculerPEP_equipe(matchData3v3, window._players||[]);
-        const _hasGuest3v3 = matchHasGuest([j1,j2,j3,j4,j5,j6]);
-        if (!_hasGuest3v3) { await appliquerPEP(deltas3v3, window._players||[], '3v3'); }
+        if (!_hasGuest3v3) { await appliquerPEP(deltas3v3, _players3v3snap, '3v3'); }
         showPage('page-home'); showToast(_hasGuest3v3 ? '🎯 Partie enregistrée · PEP non comptabilisé (invité)' : '🎯 Partie 3v3 enregistrée !'); if(s1===0||s2===0){setTimeout(() => window.showFanny('le perdant'), 600);}
       }catch(e){
         document.getElementById('score-3v3-error').textContent='Erreur : '+e.message;
@@ -6151,7 +6185,7 @@
       const score = m.score1 !== undefined ? `${m.score1} – ${m.score2}` : '';
       body.innerHTML = `
         ${score ? `<p style="text-align:center;font-size:22px;font-weight:900;color:var(--text);margin-bottom:16px">${score}</p>` : ''}
-        <button class="btn-danger" onclick="confirmDeleteMatch()">🗑 Supprimer cette partie</button>
+        
         <button class="btn-cancel" onclick="closeModal('modal-edit-match')">Annuler</button>`;
       document.getElementById('modal-edit-match').classList.add('open');
     }
