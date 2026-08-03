@@ -3738,7 +3738,14 @@
     
     function renderFormatPepClassement(container, format) {
       const fieldMap = {'1v1':'pepScore_1v1','1v1v1':'pepScore_1v1v1','2v2':'pepScore_2v2','3v3':'pepScore_3v3'};
+      const allM = window._matches || [];
       const players = (window._players||[])
+        .filter(p => allM.some(m => {
+          if (m.format !== format) return false;
+          if (format==='1v1') return m.joueur1Id===p.id||m.joueur2Id===p.id;
+          if (format==='1v1v1') return (m.joueurs||[]).includes(p.id);
+          return [...(m.equipe1||[]),...(m.equipe2||[])].includes(p.id);
+        }))
         .map(p => ({...p, pep: p[fieldMap[format]] ?? 1000}))
         .sort((a,b) => b.pep - a.pep);
       renderTableClassement(container, players, false, window._currentTab||'pep');
@@ -6316,6 +6323,19 @@
     window.addEventListener('load', () => {
       const savedId = localStorage.getItem('paletom_ligue_id');
       if (savedId) {
+        // Vérifier que la ligue existe encore dans Firebase
+        setTimeout(() => {
+          const ligues = window._ligues || [];
+          if (ligues.length > 0 && !ligues.find(l => l.id === savedId)) {
+            // Ligue supprimée - effacer et aller à la sélection
+            localStorage.removeItem('paletom_ligue_id');
+            localStorage.removeItem('paletom_ligue_nom');
+            window._currentLigueId = null;
+            window._currentLigueNom = null;
+            window.showPage('page-ligue');
+            showToast('La ligue précédente n'existe plus');
+          }
+        }, 2000);
         window._currentLigueId = savedId;
         startLigueListeners(savedId);
       } else {
