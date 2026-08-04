@@ -3658,7 +3658,7 @@
       const matches = window._matches || [];
       const formats = ['1v1','1v1v1','2v2','3v3'];
       const weights = {'1v1':1.0,'1v1v1':1.0,'2v2':0.8,'3v3':0.6};
-      const MIN_PARTIES = 3; // 3 parties minimum pour qu'un format compte dans le général
+      const MIN_PARTIES = 1; // 1 partie suffit pour compter dans le général
 
       let totalWeight = 0;
       let totalScore = 0;
@@ -3760,7 +3760,7 @@
     }
 
     function renderPepClassement(container) {
-      const MIN_P = 3;
+      const MIN_P = 1;
       const allMatches = window._matches || [];
       const players = (window._players||[])
         .map(p => {
