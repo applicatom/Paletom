@@ -2181,7 +2181,7 @@
         if (!window._colParties) { showToast('⚠️ Rejoins une ligue dabord !'); return; }
         await window._addDoc(window._colParties(),_md1);
         const _hasGuest1v1 = matchHasGuest([j1id, j2id]);
-        if (!_hasGuest1v1) { await appliquerPEP(calculerPEP_1v1(_md1,window._players||[]),window._players||[],'1v1'); }
+        { const _snap1v1=JSON.parse(JSON.stringify(window._players||[])); await appliquerPEP(calculerPEP_1v1(_md1,_snap1v1),_snap1v1,'1v1'); }
         showPage('page-home'); showToast(_hasGuest1v1 ? '🎯 Partie enregistrée · PEP non comptabilisé (invité)' : '🎯 Partie enregistrée !');
         if (s1 === 0 || s2 === 0) {
           const loserName = s1 === 0
@@ -2211,9 +2211,22 @@
     function goToScore2v2() {
       const ids=['select-2v2-j1','select-2v2-j2','select-2v2-j3','select-2v2-j4'].map(id=>document.getElementById(id).value);
       const [j1,j2,j3,j4]=ids.map(id=>window._players.find(p=>p.id===id));
-      document.getElementById('score-name-eq1').textContent=`${resolvePlayerName(ids[0],null)} & ${resolvePlayerName(ids[1],null)}`;
-      document.getElementById('score-name-eq2').textContent=`${resolvePlayerName(ids[2],null)} & ${resolvePlayerName(ids[3],null)}`;
-      [[j1,'score-avatar-2v2-j1'],[j2,'score-avatar-2v2-j2'],[j3,'score-avatar-2v2-j3'],[j4,'score-avatar-2v2-j4']].forEach(([p,id])=>setAvatar(id,p));
+      const resolveName = id => {
+        if (!id) return '?';
+        const p = (window._players||[]).find(p=>p.id===id);
+        if (p) return p.nom;
+        const gn = window._guestNames || {};
+        return gn[id] || id.replace('guest_','') || '?';
+      };
+      document.getElementById('score-name-eq1').textContent=resolveName(ids[0])+' & '+resolveName(ids[1]);
+      document.getElementById('score-name-eq2').textContent=resolveName(ids[2])+' & '+resolveName(ids[3]);
+      [[ids[0],'score-avatar-2v2-j1'],[ids[1],'score-avatar-2v2-j2'],[ids[2],'score-avatar-2v2-j3'],[ids[3],'score-avatar-2v2-j4']].forEach(([pid,elId])=>{
+        const p=window._players.find(x=>x.id===pid);
+        if(p){setAvatar(elId,p);}else{
+          const el=document.getElementById(elId);
+          if(el)el.textContent=resolveName(pid).substring(0,2).toUpperCase();
+        }
+      });
       document.getElementById('input-score-eq1').value='';
       document.getElementById('input-score-eq2').value='';
       document.getElementById('score-2v2-error').textContent='';
@@ -2261,12 +2274,12 @@
         matchData2v2.isBourre = document.getElementById('check-bourre-2v2')?.checked||false;
         const _hasGuest2v2 = matchHasGuest([j1id,j2id,j3id,j4id]);
         // Calculer les deltas AVANT _addDoc pour capturer les scores actuels
-        const _deltas2v2 = _hasGuest2v2 ? null : calculerPEP_equipe(matchData2v2, window._players||[]);
-        const _players2v2snap = _hasGuest2v2 ? null : [...(window._players||[])];
+        const _deltas2v2 = calculerPEP_equipe(matchData2v2, window._players||[]);
+        const _players2v2snap = [...(window._players||[])];
         matchData2v2.pepDeltas = _deltas2v2;
         if (!window._colParties) { showToast('⚠️ Rejoins une ligue dabord !'); return; }
         await window._addDoc(window._colParties(), matchData2v2);
-        if (!_hasGuest2v2) { await appliquerPEP(_deltas2v2, _players2v2snap, '2v2'); }
+        if (_deltas2v2) { await appliquerPEP(_deltas2v2, _players2v2snap, '2v2'); }
         showPage('page-home'); showToast(_hasGuest2v2 ? '🎯 Partie enregistrée · PEP non comptabilisé (invité)' : '🎯 Partie 2v2 enregistrée !'); if(s1===0||s2===0){setTimeout(() => window.showFanny('le perdant'), 600);}
       } catch(e) {
         document.getElementById('score-2v2-error').textContent='Erreur : '+e.message;
@@ -3133,9 +3146,9 @@
       if (p) return p.nom;
       // Nom sauvegardé dans le match (playerNames ou guestNames)
       if (match?.playerNames?.[playerId]) return match.playerNames[playerId];
-      if (match?.guestNames?.[playerId]) return match.guestNames[playerId];
+      if (match?.guestNames?.[playerId]) return match.guestNames[playerId]+' (invité)';
       // Invité local (session en cours)
-      if (window._guestNames?.[playerId]) return window._guestNames[playerId];
+      if (window._guestNames?.[playerId]) return window._guestNames[playerId]+' (invité)';
       // Fallback guestId
       if (playerId.startsWith('guest_')) return playerId.replace('guest_','').replace(/_[0-9]+$/,'').replace(/_/g,' ');
       return 'Joueur supprimé';
@@ -3305,12 +3318,7 @@
     // RENDER RECENT MATCHES
 
     function openPepPdf() {
-      const modal = document.getElementById('modal-pdf-pep');
-      const iframe = document.getElementById('iframe-pdf-pep');
-      if (iframe.src === '' || iframe.src === window.location.href) {
-        iframe.src = 'https://thmoreau4.github.io/Paletom/Paletom_PEP_v1.pdf';
-      }
-      modal.style.display = 'flex';
+      window.open('https://thmoreau4.github.io/Paletom/Paletom_PEP_v1.pdf', '_blank');
     }
     window.openPepPdf = openPepPdf;
 
@@ -3674,7 +3682,7 @@
       }
 
       if (totalWeight === 0) {
-        return { score: p['pepScore_1v1'] ?? 1000, formats: [] };
+        return { score: 1000, formats: [] };
       }
 
       return {
@@ -4061,8 +4069,8 @@
       const result = {};
       const gagnants = gagnantEquipe === 1 ? eq1 : eq2;
       const perdants = gagnantEquipe === 1 ? eq2 : eq1;
-      gagnants.forEach(id => result[id] = ptsGagnant);
-      perdants.forEach(id => result[id] = ptsPerdant);
+      gagnants.forEach(id => { if(id && !id.startsWith('guest_')) result[id] = ptsGagnant; });
+      perdants.forEach(id => { if(id && !id.startsWith('guest_')) result[id] = ptsPerdant; });
 
       return result;
     }
@@ -4075,15 +4083,14 @@
                   : format === '2v2' ? 'pepScore_2v2'
                   : format === '3v3' ? 'pepScore_3v3'
                   : 'pepScore'; // fallback
-      console.log('[PEP] format:', format, 'field:', field, 'deltas:', deltas);
+
       for (const [id, delta] of Object.entries(deltas)) {
         const player = players.find(p => p.id === id);
-        if (!player) { console.log('[PEP] joueur introuvable:', id); continue; }
+        if (!player) continue;
         const current = player[field] ?? 1000;
         const newScore = Math.max(0, Math.min(2000, current + delta));
-        console.log('[PEP]', player.nom, current, '+', delta, '=', newScore);
+
         if (window._docJoueur) await window._updateDoc(window._docJoueur(id), { [field]: newScore });
-        else console.log('[PEP] _docJoueur manquant !');
       }
     }
     window.appliquerPEP = appliquerPEP;
@@ -4092,6 +4099,15 @@
     window.renderRanking = renderRanking;
     window.refreshPlayerSelects = refreshPlayerSelects;
     window.renderRecentMatches = renderRecentMatches;
+
+    // Listener global pour les boutons ... des matchs
+    document.addEventListener('click', function(e) {
+      const el = e.target.closest('[data-edit]');
+      if (el) {
+        const t = document.getElementById('toast');
+        if (t) { t.textContent = "⚠️ Pour toute correction, contacte l'admin"; t.style.opacity=1; setTimeout(()=>t.style.opacity=0, 3000); }
+      }
+    });
     window.savePlayer=savePlayer;
 
     // ══════════════════════════════════════════════════════
@@ -6085,12 +6101,12 @@
         };
         matchData3v3.isBourre = document.getElementById('check-bourre-3v3')?.checked||false;
         const _hasGuest3v3 = matchHasGuest([j1,j2,j3,j4,j5,j6]);
-        const deltas3v3 = _hasGuest3v3 ? null : calculerPEP_equipe(matchData3v3, window._players||[]);
-        const _players3v3snap = _hasGuest3v3 ? null : [...(window._players||[])];
+        const deltas3v3 = calculerPEP_equipe(matchData3v3, window._players||[]);
+        const _players3v3snap = _hasGuest3v3 ? null : JSON.parse(JSON.stringify(window._players||[]));
         matchData3v3.pepDeltas = deltas3v3;
         if (!window._colParties) { showToast('⚠️ Rejoins une ligue dabord !'); return; }
         await window._addDoc(window._colParties(), matchData3v3);
-        if (!_hasGuest3v3) { await appliquerPEP(deltas3v3, _players3v3snap, '3v3'); }
+        if (deltas3v3) { await appliquerPEP(deltas3v3, _players3v3snap, '3v3'); }
         showPage('page-home'); showToast(_hasGuest3v3 ? '🎯 Partie enregistrée · PEP non comptabilisé (invité)' : '🎯 Partie 3v3 enregistrée !'); if(s1===0||s2===0){setTimeout(() => window.showFanny('le perdant'), 600);}
       }catch(e){
         document.getElementById('score-3v3-error').textContent='Erreur : '+e.message;
@@ -6168,7 +6184,7 @@
         await window._addDoc(window._colParties(), matchData1v1v1);
         const deltas1v1v1 = calculerPEP_1v1v1(matchData1v1v1, window._players||[]);
         const _hasGuest1v1v1 = matchHasGuest(ids);
-        if (!_hasGuest1v1v1) { await appliquerPEP(deltas1v1v1, window._players||[], '1v1v1'); }
+        { const _snap1v1v1=JSON.parse(JSON.stringify(window._players||[])); await appliquerPEP(deltas1v1v1, _snap1v1v1, '1v1v1'); }
         showPage('page-home'); showToast(_hasGuest1v1v1 ? '🎯 Partie enregistrée · PEP non comptabilisé (invité)' : '🎯 Partie 1v1v1 enregistrée !'); if(scores.some(s=>s===0)){setTimeout(() => window.showFanny('le perdant'), 600);}
       }catch(e){
         document.getElementById('score-1v1v1-error').textContent='Erreur : '+e.message;
@@ -6180,30 +6196,18 @@
 
     // MODIFIER / SUPPRIMER MATCH
     function openEditMatch(matchId) {
-      const m=(window._matches||[]).find(m=>m.id===matchId);
-      if(!m)return;
+      const m=(window._matches||[]).find(x=>x.id===matchId);
+      if(!m) return;
       window._editingMatchId=matchId;
-      const body=document.getElementById('edit-match-body');
-      // Construire le titre
-      let titre = 'Partie';
-      if(m.format==='1v1'){
-        const j1=window._players.find(p=>p.id===m.joueur1Id);
-        const j2=window._players.find(p=>p.id===m.joueur2Id);
-        titre = `${j1?j1.nom:'?'} vs ${j2?j2.nom:'?'}`;
-      } else if(m.format==='2v2'){
-        titre = '2v2';
-      } else if(m.format==='1v1v1'){
-        titre = '1v1v1';
-      }
-      document.getElementById('edit-match-title').textContent = titre;
-      const score = m.score1 !== undefined ? `${m.score1} – ${m.score2}` : '';
-      body.innerHTML = `
-        ${score ? `<p style="text-align:center;font-size:22px;font-weight:900;color:var(--text);margin-bottom:16px">${score}</p>` : ''}
-        
-        <button class="btn-cancel" onclick="closeModal('modal-edit-match')">Annuler</button>`;
+      let titre='Partie';
+      if(m.format==='1v1'){const j1=window._players.find(p=>p.id===m.joueur1Id);const j2=window._players.find(p=>p.id===m.joueur2Id);titre=(j1?j1.nom:'?')+' vs '+(j2?j2.nom:'?');}
+      else if(m.format==='2v2') titre='2v2';
+      else if(m.format==='1v1v1') titre='1v1v1';
+      document.getElementById('edit-match-title').textContent=titre;
+      document.getElementById('edit-match-body').innerHTML='<p style="text-align:center;padding:12px;color:var(--text2);font-size:13px;line-height:1.6">Pour toute correction de score,<br/>contacte l\'admin.</p><button class="btn-cancel" onclick="closeModal(\'modal-edit-match\')">Fermer</button>';
       document.getElementById('modal-edit-match').classList.add('open');
     }
-    window.openEditMatch=openEditMatch;
+    window.openEditMatch=openEditMatch;;
 
     async function saveEditMatch() {
       const m=(window._matches||[]).find(m=>m.id===window._editingMatchId);
