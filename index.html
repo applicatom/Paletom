@@ -3788,11 +3788,7 @@
         })
         .sort((a,b) => b.pep - a.pep);
       // Phrase d'info sur le seuil
-      const infoHtml = '<div style="font-size:11px;color:var(--text2);font-weight:600;text-align:center;padding:8px 16px 4px;line-height:1.5">Un format compte dans le général à partir de 3 parties jouées dans ce mode</div>';
-      container.innerHTML = infoHtml;
-      const sub = document.createElement('div');
-      container.appendChild(sub);
-      renderTableClassement(sub, players, true, 'pep');
+      renderTableClassement(container, players, true, 'pep');
     }
 
     
