@@ -2686,7 +2686,7 @@
           ${topStreakPlayer && topStreak >= 1 ? `<div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer" onclick="openStatsDetail('series')">
             <div style="font-size:9px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">🔥 Série en cours</div>
             <div style="font-size:16px;font-weight:900;color:var(--text);line-height:1;margin-top:2px">${topStreakPlayer.nom}</div>
-            <div style="font-size:11px;color:var(--red);font-weight:700;margin-top:3px">${topStreak} victoires</div>
+            <div style="font-size:11px;color:var(--green);font-weight:700;margin-top:3px">${topStreak} victoire${topStreak>1?'s':''}</div>
           </div>` : ''}
         </div>
       `;
