@@ -995,7 +995,8 @@
             <div style="font-size:12px;font-weight:800;margin-bottom:8px">🎮 Format</div>
             <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--border)"><span style="color:var(--text2);font-weight:600">1v1 / 1v1v1</span><span style="font-weight:800;color:var(--navy)">×1.0</span></div>
             <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--border)"><span style="color:var(--text2);font-weight:600">Double (2v2)</span><span style="font-weight:800;color:var(--navy)">×0.8</span></div>
-            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span style="color:var(--text2);font-weight:600">Triplette (3v3)</span><span style="font-weight:800;color:var(--navy)">×0.6</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-top:1px solid var(--border);margin-top:4px"><span style="color:var(--text2);font-weight:600">Triplette (3v3)</span><span style="font-weight:800;color:var(--navy)">×0.6</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span style="color:var(--text2);font-weight:600">⭐ Finale (belle à 15 pts)</span><span style="font-weight:800;color:#fbbf24">×1.2</span></div>
           </div>
         </div>
       </div>
@@ -1956,7 +1957,7 @@
         '3v3_2p':'Triplette · 2 palets',
       };
       const subLabel = subLabels[subFormat] || format;
-      const finale = maxPts === 15 ? ' · ⭐ Finale' : '';
+      const finale = maxPts === 15 ? ' · ⭐ Finale ×1.2' : '';
 
       if (format === '3v3') {
         if (window._players.length < 2) { showToast('⚠️ Ajoute au moins 2 joueurs !'); return; }
@@ -3049,7 +3050,25 @@
         const col = delta > 0 ? 'var(--green)' : delta < 0 ? 'var(--red)' : 'var(--text2)';
         const bg = delta > 0 ? 'var(--green-light)' : delta < 0 ? 'var(--red-light)' : 'var(--bg3)';
         const sign = delta > 0 ? '+' : '';
-        return `<span style="font-size:10px;font-weight:700;color:${col};background:${bg};border-radius:5px;padding:1px 6px;white-space:nowrap">${sign}${delta} PEP</span>`;
+        // Calculer le delta général
+        const players = window._players || [];
+        const player = players.find(p => p.id === playerId);
+        let genDeltaStr = '';
+        if (player) {
+          // Score général avant = calcPepGeneral avec score format avant delta
+          const fmt = m.format;
+          const field = fmt==='1v1'?'pepScore_1v1':fmt==='1v1v1'?'pepScore_1v1v1':fmt==='2v2'?'pepScore_2v2':'pepScore_3v3';
+          const scoreBefore = (player[field] ?? 1000) - delta;
+          const playerBefore = {...player, [field]: scoreBefore};
+          const genBefore = calcPepGeneral(playerBefore).score;
+          const genAfter = calcPepGeneral(player).score;
+          const genDelta = genAfter - genBefore;
+          if (genDelta !== 0) {
+            const genSign = genDelta > 0 ? '+' : '';
+            genDeltaStr = `<span style="font-size:9px;font-weight:600;color:var(--text2);margin-left:3px;white-space:nowrap">(gén. ${genSign}${genDelta})</span>`;
+          }
+        }
+        return `<span style="font-size:10px;font-weight:700;color:${col};background:${bg};border-radius:5px;padding:1px 6px;white-space:nowrap">${sign}${delta} PEP</span>${genDeltaStr}`;
       }
 
       const fmtLabel = {'1v1':'1v1','1v1v1':'1v1v1','2v2':'Double','3v3':'Triplette'}[m.format] || m.format;
@@ -3988,7 +4007,8 @@
       const lvlP = gagneJ1 ? lvl2 : lvl1;
       const pts = PEP_TABLE[lvlG][lvlP];  // All-Star(3) bat Confirmé(2) → PEP_TABLE[3][2] = 20
 
-      const deltaG = Math.round(pts * cs * coeff);
+      const belleCoeff = maxPts === 15 ? 1.2 : 1.0;
+      const deltaG = Math.round(pts * cs * coeff * belleCoeff);
       const deltaP = -deltaG;  // symétrique
 
       const result = {};
@@ -4061,7 +4081,8 @@
       // Points selon qui gagne — symétrique, basé sur niveau de l'équipe gagnante
       const lvlG = gagnantEquipe === 1 ? lvl1 : lvl2;
       const lvlP = gagnantEquipe === 1 ? lvl2 : lvl1;
-      const ptsGagnant = Math.round(PEP_TABLE[lvlG][lvlP] * cs * coeff);
+      const belleCoeffEq = match.maxPts === 15 ? 1.2 : 1.0;
+      const ptsGagnant = Math.round(PEP_TABLE[lvlG][lvlP] * cs * coeff * belleCoeffEq);
       const ptsPerdant = -ptsGagnant; // symétrique
 
       const result = {};
