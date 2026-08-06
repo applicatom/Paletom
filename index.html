@@ -3707,10 +3707,11 @@
       container.innerHTML = `
         <div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">
           <!-- En-tête colonnes -->
-          <div style="display:grid;grid-template-columns:28px 36px 1fr 32px 32px 32px 52px;align-items:center;gap:4px;padding:7px 12px;background:var(--navy)">
+          <div style="display:grid;grid-template-columns:28px 36px 1fr 32px 32px 32px 32px 52px;align-items:center;gap:4px;padding:7px 12px;background:var(--navy)">
             <div style="font-size:9px;font-weight:700;color:#ffffff60;text-align:center">#</div>
             <div></div>
             <div style="font-size:9px;font-weight:700;color:#ffffff60">Joueur</div>
+            <div style="font-size:9px;font-weight:700;color:#ffffff60;text-align:center">J</div>
             <div style="font-size:9px;font-weight:700;color:#ffffff60;text-align:center">V</div>
             <div style="font-size:9px;font-weight:700;color:#ffffff60;text-align:center">D</div>
             <div style="font-size:9px;font-weight:700;color:#ffffff60;text-align:center">%</div>
@@ -3725,14 +3726,14 @@
             const wins = stats.wins || 0;
             const losses = (stats.played || 0) - (stats.wins || 0);
             return `<div onclick="openPlayerPage('${p.id}')"
-              style="display:grid;grid-template-columns:28px 36px 1fr 32px 32px 32px 52px;align-items:center;gap:4px;padding:9px 12px;cursor:pointer;${isLast?'':'border-bottom:1px solid var(--border)'}">
+              style="display:grid;grid-template-columns:28px 36px 1fr 32px 32px 32px 32px 52px;align-items:center;gap:4px;padding:9px 12px;cursor:pointer;${isLast?'':'border-bottom:1px solid var(--border)'}">
               <div style="font-size:12px;font-weight:800;color:${numColor};text-align:center">${i+1}</div>
               ${rankAvatarHtml(p, 30)}
               <div style="min-width:0">
                 <div style="font-size:12px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nom}</div>
                 <span style="font-size:8px;font-weight:800;color:${badge.color};background:${badge.bg};border-radius:20px;padding:3px 7px;white-space:nowrap">${badge.label}</span>
               </div>
-              <div style="font-size:12px;font-weight:800;color:var(--green);text-align:center">${wins}</div>
+              <div style="font-size:11px;font-weight:700;color:var(--text2);text-align:center">${stats.played||0}</div><div style="font-size:12px;font-weight:800;color:var(--green);text-align:center">${wins}</div>
               <div style="font-size:12px;font-weight:800;color:var(--red);text-align:center">${losses}</div>
               <div style="font-size:11px;font-weight:700;color:var(--text2);text-align:center">${stats.winPct}%</div>
               <div style="text-align:right">
@@ -3786,6 +3787,7 @@
           });
           return {...p, pep: g.score, pepFormats: g.formats, played, wins, losses: played-wins, winPct: played>0?Math.round(wins/played*100):0};
         })
+        .filter(p => (window._matches||[]).some(m => m.joueur1Id===p.id||m.joueur2Id===p.id||(m.joueurs||[]).includes(p.id)||(m.equipe1||[]).includes(p.id)||(m.equipe2||[]).includes(p.id)))
         .sort((a,b) => b.pep - a.pep);
       // Phrase d'info sur le seuil
       renderTableClassement(container, players, true, 'pep');
