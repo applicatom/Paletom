@@ -2174,15 +2174,21 @@
       document.getElementById('btn-save-score').disabled=true;
       document.getElementById('btn-save-score').textContent='Enregistrement...';
       try {
+        const _matchesSnap1v1 = [...(window._matches||[])];
+        const _snap1v1early=JSON.parse(JSON.stringify(window._players||[]));
         const _pn1 = {}; 
-        [j1id,j2id].forEach(id=>{const p=window._players.find(p=>p.id===id);if(p)_pn1[id]=p.nom;if(window._guestNames?.[id])_pn1[id]=window._guestNames[id];});
-        const _d1v1=calculerPEP_1v1({format:'1v1',maxPts:window._maxPts||13,joueur1Id:j1id,joueur2Id:j2id,score1:s1,score2:s2,gagnantId:s1>s2?j1id:j2id},window._players||[]);
+        [j1id,j2id].forEach(id=>{const p=_snap1v1early.find(p=>p.id===id);if(p)_pn1[id]=p.nom;if(window._guestNames?.[id])_pn1[id]=window._guestNames[id];});
+        const _d1v1=calculerPEP_1v1({format:'1v1',maxPts:window._maxPts||13,joueur1Id:j1id,joueur2Id:j2id,score1:s1,score2:s2,gagnantId:s1>s2?j1id:j2id},_snap1v1early);
         const _isBourre1=document.getElementById('check-bourre')?.checked||false;
         const _md1={format:'1v1',subFormat:window._currentSubFormat,maxPts:window._maxPts||13,joueur1Id:j1id,joueur2Id:j2id,score1:s1,score2:s2,gagnantId:s1>s2?j1id:j2id,date:Date.now(),playerNames:_pn1,pepDeltas:_d1v1,isBourre:_isBourre1};
         if (!window._colParties) { showToast('⚠️ Rejoins une ligue dabord !'); return; }
+        // Calculer genDeltas avant addDoc
+        const _gd1v1={};
+        Object.entries(_d1v1).forEach(([id,d])=>{const p=_snap1v1early.find(x=>x.id===id)||{pepScore_1v1:1000,pepScore_1v1v1:1000,pepScore_2v2:1000,pepScore_3v3:1000};const scoreBefore=p.pepScore_1v1??1000;const b=calcPepGeneral({...p,pepScore_1v1:scoreBefore},_matchesSnap1v1).score;const a=calcPepGeneral({...p,pepScore_1v1:scoreBefore+d},[...(_matchesSnap1v1||[]),{format:'1v1',joueur1Id:_md1.joueur1Id,joueur2Id:_md1.joueur2Id}]).score;_gd1v1[id]=a-b;});
+        if(Object.values(_gd1v1).some(v=>v!==0)) _md1.genDeltas=_gd1v1;
         await window._addDoc(window._colParties(),_md1);
         const _hasGuest1v1 = matchHasGuest([j1id, j2id]);
-        { const _snap1v1=JSON.parse(JSON.stringify(window._players||[])); await appliquerPEP(calculerPEP_1v1(_md1,_snap1v1),_snap1v1,'1v1'); }
+        await appliquerPEP(_d1v1,_snap1v1early,'1v1');
         showPage('page-home'); showToast(_hasGuest1v1 ? '🎯 Partie enregistrée · PEP non comptabilisé (invité)' : '🎯 Partie enregistrée !');
         if (s1 === 0 || s2 === 0) {
           const loserName = s1 === 0
@@ -2279,6 +2285,13 @@
         const _players2v2snap = [...(window._players||[])];
         matchData2v2.pepDeltas = _deltas2v2;
         if (!window._colParties) { showToast('⚠️ Rejoins une ligue dabord !'); return; }
+        // Calculer genDeltas avant d'enregistrer
+                // Snapshot des matchs AVANT l'ajout pour genDeltas
+        const _matchesSnap2v2 = [...(window._matches||[])]
+        // Calculer genDeltas avant d'enregistrer
+        const _genDeltas2v2={};
+        if(_deltas2v2){Object.entries(_deltas2v2).forEach(([id,delta])=>{const p=_players2v2snap.find(x=>x.id===id);if(p){const sb2v2=p.pepScore_2v2??1000;const before=calcPepGeneral({...p,pepScore_2v2:sb2v2},_matchesSnap2v2).score;const after=calcPepGeneral({...p,pepScore_2v2:sb2v2+delta},[...(_matchesSnap2v2||[]),{format:'2v2',equipe1:matchData2v2.equipe1,equipe2:matchData2v2.equipe2}]).score;_genDeltas2v2[id]=after-before;}});}
+        if(Object.values(_genDeltas2v2).some(v=>v!==0)) matchData2v2.genDeltas=_genDeltas2v2;
         await window._addDoc(window._colParties(), matchData2v2);
         if (_deltas2v2) { await appliquerPEP(_deltas2v2, _players2v2snap, '2v2'); }
         showPage('page-home'); showToast(_hasGuest2v2 ? '🎯 Partie enregistrée · PEP non comptabilisé (invité)' : '🎯 Partie 2v2 enregistrée !'); if(s1===0||s2===0){setTimeout(() => window.showFanny('le perdant'), 600);}
@@ -2598,6 +2611,38 @@
           <div style="flex:1;font-size:14px;font-weight:700;color:var(--text)">${d.nom}</div>
           <div style="font-size:13px;font-weight:800;color:var(--green)">${d.wins}V</div>
         </div>`).join('');
+      } else if (type === 'winpct') {
+        title = '🎯 Meilleur % de victoires';
+        const data = players.map(p => {
+          const s = getPlayerStats(p.id) || {wins:0, played:0, winPct:0};
+          return { nom: p.nom, pct: s.winPct||0, played: s.played||0 };
+        }).filter(d => d.played > 0).sort((a,b) => b.pct - a.pct);
+        rows = data.map(function(d,i) {
+          return '<div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border)">'
+            +'<div style="width:24px;font-size:12px;font-weight:800;color:var(--text2)">'+(i+1)+'</div>'
+            +'<div style="flex:1;font-size:14px;font-weight:700;color:var(--text)">'+d.nom+'</div>'
+            +'<div style="font-size:13px;font-weight:800;color:var(--green)">'+d.pct+'%</div>'
+            +'<div style="font-size:11px;color:var(--text2);margin-left:6px">'+d.played+' p.</div>'
+            +'</div>';
+        }).join('');
+      } else if (type === 'clutch') {
+        title = '⭐ Joueur Clutch - Finales gagnées';
+        const clutch = {};
+        matches.filter(m => m.maxPts === 15).forEach(function(m) {
+          if (m.format==='1v1'||m.format==='1v1v1') { if(m.gagnantId) clutch[m.gagnantId]=(clutch[m.gagnantId]||0)+1; }
+          else { const eq = m.gagnantEquipe===1?(m.equipe1||[]):(m.equipe2||[]); eq.forEach(function(id){if(id&&!id.startsWith('guest_')) clutch[id]=(clutch[id]||0)+1;}); }
+        });
+        // Tous les joueurs, même ceux à 0 finale
+        const data = players.map(function(p) {
+          return { nom: p.nom, finales: clutch[p.id]||0 };
+        }).sort((a,b)=>b.finales-a.finales);
+        rows = data.map(function(d,i) {
+          return '<div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border)">'
+            +'<div style="width:24px;font-size:12px;font-weight:800;color:var(--text2)">'+(i+1)+'</div>'
+            +'<div style="flex:1;font-size:14px;font-weight:700;color:var(--text)">'+d.nom+'</div>'
+            +'<div style="font-size:13px;font-weight:800;color:#fbbf24">'+d.finales+' ⭐</div>'
+            +'</div>';
+        }).join('');
       } else if (type === 'formats') {
         title = '🎮 Parties par format';
         const byFmt = {};
@@ -2670,20 +2715,36 @@
       container.innerHTML = `
         <div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:8px">🏟️ Vue générale</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow)">
+          <div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer" onclick="openStatsDetail('formats')">
             <div style="font-size:9px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">Total parties</div>
             <div style="font-size:28px;font-weight:900;color:var(--text);letter-spacing:-1px;line-height:1">${total}</div>
+            <div style="font-size:10px;color:var(--text2);margin-top:3px">${Object.entries(byFmt).sort((a,b)=>b[1]-a[1]).map(([f,n])=>(fmtLabels[f]||f)+' '+n).join(' · ')}</div>
           </div>
-          <div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer" onclick="openStatsDetail('formats')">
-            <div style="font-size:9px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">Format favori</div>
-            <div style="font-size:20px;font-weight:900;color:var(--text);line-height:1;margin-top:2px">${topFmt ? fmtLabels[topFmt[0]]||topFmt[0] : '—'}</div>
-            <div style="font-size:11px;color:var(--text2);margin-top:3px">${topFmt ? topFmt[1]+' partie'+(topFmt[1]>1?'s':'') : ''}</div>
+          <div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer" onclick="openStatsDetail('winpct')">
+            <div style="font-size:9px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">🎯 Meilleur %</div>
+            ${(() => { const bp = players.map(p=>{const s=getPlayerStats(p.id);return{...p,pct:s.winPct,played:s.played};}).filter(p=>p.played>0).sort((a,b)=>b.pct-a.pct)[0]; return bp ? '<div style="font-size:16px;font-weight:900;color:var(--text);line-height:1;margin-top:2px">'+bp.nom+'</div><div style="font-size:11px;color:var(--green);font-weight:700;margin-top:3px">'+bp.pct+'%</div>' : '<div style="font-size:16px;color:var(--text2)">—</div>'; })()}
           </div>
-          ${topWinner ? `<div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer" onclick="openStatsDetail('victoires')">
-            <div style="font-size:9px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">👑 Plus de victoires</div>
-            <div style="font-size:16px;font-weight:900;color:var(--text);line-height:1;margin-top:2px">${topWinner.nom}</div>
-            <div style="font-size:11px;color:var(--green);font-weight:700;margin-top:3px">${topWins} victoire${topWins>1?'s':''}</div>
-          </div>` : ''}
+          ${(() => {
+            const finales = matches.filter(m => m.maxPts === 15);
+            const clutch = {};
+            finales.forEach(m => {
+              const gId = m.format==='1v1'||m.format==='1v1v1' ? m.gagnantId : null;
+              const gEq = m.gagnantEquipe;
+              if (gId) { clutch[gId] = (clutch[gId]||0)+1; }
+              else if (gEq) { const eq = gEq===1?(m.equipe1||[]):(m.equipe2||[]); eq.forEach(id=>{if(id&&!id.startsWith('guest_')) clutch[id]=(clutch[id]||0)+1;}); }
+            });
+            const top = Object.entries(clutch).sort((a,b)=>b[1]-a[1])[0];
+            if (!top) return '';
+            const p = players.find(x=>x.id===top[0]);
+            if (!p) return '';
+            const el = document.createElement('div');
+            el.style.cssText = 'background:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer';
+            el.onclick = function(){openStatsDetail('clutch');};
+            el.innerHTML = '<div style="font-size:9px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">⭐ Joueur Clutch</div>'
+              + '<div style="font-size:16px;font-weight:900;color:var(--text);line-height:1;margin-top:2px">'+p.nom+'</div>'
+              + '<div style="font-size:11px;color:#fbbf24;font-weight:700;margin-top:3px">'+top[1]+' finale'+(top[1]>1?'s':'')+' gagnée'+(top[1]>1?'s':'')+'</div>';
+            return el.outerHTML;
+          })()}
           ${topStreakPlayer && topStreak >= 1 ? `<div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer" onclick="openStatsDetail('series')">
             <div style="font-size:9px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">🔥 Série en cours</div>
             <div style="font-size:16px;font-weight:900;color:var(--text);line-height:1;margin-top:2px">${topStreakPlayer.nom}</div>
@@ -3050,23 +3111,20 @@
         const col = delta > 0 ? 'var(--green)' : delta < 0 ? 'var(--red)' : 'var(--text2)';
         const bg = delta > 0 ? 'var(--green-light)' : delta < 0 ? 'var(--red-light)' : 'var(--bg3)';
         const sign = delta > 0 ? '+' : '';
-        // Calculer le delta général
-        const players = window._players || [];
-        const player = players.find(p => p.id === playerId);
+        // Delta général : utiliser si stocké, sinon = delta format si premier match
         let genDeltaStr = '';
-        if (player) {
-          // Score général avant = calcPepGeneral avec score format avant delta
+        let genDelta = null;
+        if (m.genDeltas && m.genDeltas[playerId] !== undefined) {
+          genDelta = m.genDeltas[playerId];
+        } else if (delta !== null && delta !== undefined) {
+          // Premier match : delta général ≈ delta format pondéré
           const fmt = m.format;
-          const field = fmt==='1v1'?'pepScore_1v1':fmt==='1v1v1'?'pepScore_1v1v1':fmt==='2v2'?'pepScore_2v2':'pepScore_3v3';
-          const scoreBefore = (player[field] ?? 1000) - delta;
-          const playerBefore = {...player, [field]: scoreBefore};
-          const genBefore = calcPepGeneral(playerBefore).score;
-          const genAfter = calcPepGeneral(player).score;
-          const genDelta = genAfter - genBefore;
-          if (genDelta !== 0) {
-            const genSign = genDelta > 0 ? '+' : '';
-            genDeltaStr = `<span style="font-size:9px;font-weight:600;color:var(--text2);margin-left:3px;white-space:nowrap">(gén. ${genSign}${genDelta})</span>`;
-          }
+          const w = fmt==='2v2'?0.8:fmt==='3v3'?0.6:1.0;
+          genDelta = Math.round(delta * w);
+        }
+        if (genDelta !== null) {
+          const genSign = genDelta > 0 ? '+' : '';
+          genDeltaStr = `<span style="font-size:9px;font-weight:600;color:var(--text2);margin-left:3px;white-space:nowrap">(gén. ${genSign}${genDelta})</span>`;
         }
         return `<span style="font-size:10px;font-weight:700;color:${col};background:${bg};border-radius:5px;padding:1px 6px;white-space:nowrap">${sign}${delta} PEP</span>${genDeltaStr}`;
       }
@@ -3098,7 +3156,7 @@
           <div style="display:flex;align-items:center;padding:6px 12px 4px;border-bottom:1px solid var(--border)">
             <span style="font-size:10px;font-weight:700;background:${fmtColor};color:${fmtText};padding:2px 7px;border-radius:20px">${fmtLabel}</span>
             <span style="flex:1"></span>
-            ${m.maxPts === 15 ? '<span style="font-size:12px;margin-right:4px">⭐</span>' : ''}${m.isBourre ? '<span style="font-size:12px;margin-right:4px">🍺</span>' : ''}
+            ${m.maxPts === 15 ? '<span style="font-size:12px;margin-right:2px">⭐</span><span style="font-size:9px;font-weight:700;color:#fbbf24;margin-right:4px">×1.2</span>' : ''}${m.isBourre ? '<span style="font-size:12px;margin-right:4px">🍺</span>' : ''}
             <span style="font-size:10px;color:var(--text2)">${d}</span>
             ${editBtn}
           </div>
@@ -3116,7 +3174,7 @@
           <div style="display:flex;align-items:center;padding:6px 12px 4px;border-bottom:1px solid var(--border)">
             <span style="font-size:10px;font-weight:700;background:${fmtColor};color:${fmtText};padding:2px 7px;border-radius:20px">${fmtLabel}</span>
             <span style="flex:1"></span>
-            ${m.maxPts === 15 ? '<span style="font-size:12px;margin-right:4px">⭐</span>' : ''}${m.isBourre ? '<span style="font-size:12px;margin-right:4px">🍺</span>' : ''}
+            ${m.maxPts === 15 ? '<span style="font-size:12px;margin-right:2px">⭐</span><span style="font-size:9px;font-weight:700;color:#fbbf24;margin-right:4px">×1.2</span>' : ''}${m.isBourre ? '<span style="font-size:12px;margin-right:4px">🍺</span>' : ''}
             <span style="font-size:10px;color:var(--text2)">${d}</span>
             ${editBtn}
           </div>
@@ -3128,14 +3186,40 @@
       const eq1 = (m.equipe1||[]).map(id => resolvePlayerName(id, m)).join(' · ');
       const eq2 = (m.equipe2||[]).map(id => resolvePlayerName(id, m)).join(' · ');
       const g1w = m.gagnantEquipe === 1;
-      const pep1 = pepBadge((m.equipe1||[])[0]);
-      const pep2 = pepBadge((m.equipe2||[])[0]);
+      // Pour équipes, afficher delta général de chaque joueur à côté de son badge PEP
+      function pepBadgeWithGen(playerId) {
+        const badge = pepBadge(playerId);
+        if (!badge) return '';
+        if (m.genDeltas && m.genDeltas[playerId] !== undefined) {
+          const gd = m.genDeltas[playerId];
+          const sign = gd >= 0 ? '+' : '';
+          return badge + '<span style="font-size:9px;font-weight:600;color:var(--text2);margin-left:3px;white-space:nowrap">(gén. '+sign+gd+')</span>';
+        }
+        return badge;
+      }
+      const pep1 = pepBadgeWithGen((m.equipe1||[])[0]);
+      const pep2 = pepBadgeWithGen((m.equipe2||[])[0]);
+      // Delta général par joueur - calculé une seule fois avant le template
+      function genDeltaStr(equipe) {
+        if (!m.genDeltas) return '';
+        const parts = (equipe||[]).filter(id=>id&&!id.startsWith('guest_')).map(id=>{
+          const gd = m.genDeltas[id];
+          if (gd === undefined || gd === null) return null;
+          const p = (window._players||[]).find(x=>x.id===id);
+          const nom = p ? p.nom.split(' ')[0] : '';
+          return nom+' '+(gd>=0?'+':'')+gd;
+        }).filter(Boolean);
+        return parts.join(' · ');
+      }
+      const gs1 = genDeltaStr(m.equipe1);
+      const gs2 = genDeltaStr(m.equipe2);
+      const genTeamHtml = (gs1||gs2) ? '<div style="padding:2px 12px 6px;font-size:9px;color:var(--text2);font-weight:600">'+(gs1?'Éq.1 gén. '+gs1:'')+(gs1&&gs2?' &nbsp;·&nbsp; ':'')+(gs2?'Éq.2 gén. '+gs2:'')+'</div>' : '';
       const borderStyle = '';
         return `<div class="match-item">
         <div style="display:flex;align-items:center;padding:6px 12px 4px;border-bottom:1px solid var(--border)">
           <span style="font-size:10px;font-weight:700;background:${fmtColor};color:${fmtText};padding:2px 7px;border-radius:20px">${fmtLabel}</span>
           <span style="flex:1"></span>
-          ${m.maxPts === 15 ? '<span style="font-size:12px;margin-right:4px">⭐</span>' : ''}${m.isBourre ? '<span style="font-size:12px;margin-right:4px">🍺</span>' : ''}
+          ${m.maxPts === 15 ? '<span style="font-size:12px;margin-right:2px">⭐</span><span style="font-size:9px;font-weight:700;color:#fbbf24;margin-right:4px">×1.2</span>' : ''}${m.isBourre ? '<span style="font-size:12px;margin-right:4px">🍺</span>' : ''}
           <span style="font-size:10px;color:var(--text2)">${d}</span>
           ${editBtn}
         </div>
@@ -3673,36 +3757,43 @@
       </div>`;
     }
 
-    function calcPepGeneral(p) {
-      const matches = window._matches || [];
+    function calcPepGeneral(p, matchesOverride) {
+      const matches = matchesOverride || window._matches || [];
       const formats = ['1v1','1v1v1','2v2','3v3'];
-      const weights = {'1v1':1.0,'1v1v1':1.0,'2v2':0.8,'3v3':0.6};
-      const MIN_PARTIES = 1; // 1 partie suffit pour compter dans le général
+      const baseWeights = {'1v1':1.0,'1v1v1':1.0,'2v2':0.8,'3v3':0.6};
+
+      // Compter les matchs par format pour ce joueur
+      const counts = {};
+      let totalMatches = 0;
+      for (const fmt of formats) {
+        const c = matches.filter(m => {
+          if (m.format !== fmt) return false;
+          if (fmt === '1v1') return m.joueur1Id === p.id || m.joueur2Id === p.id;
+          if (fmt === '1v1v1') return (m.joueurs||[]).includes(p.id);
+          return (m.equipe1||[]).includes(p.id) || (m.equipe2||[]).includes(p.id);
+        }).length;
+        counts[fmt] = c;
+        totalMatches += c;
+      }
+
+      if (totalMatches === 0) return { score: 1000, formats: [] };
 
       let totalWeight = 0;
       let totalScore = 0;
       const activeFormats = [];
 
       for (const fmt of formats) {
+        if (counts[fmt] === 0) continue;
         const field = 'pepScore_' + fmt;
         const score = p[field] ?? 1000;
-        const count = matches.filter(m => {
-          if (m.format !== fmt) return false;
-          if (fmt === '1v1') return m.joueur1Id === p.id || m.joueur2Id === p.id;
-          if (fmt === '1v1v1') return (m.joueurs||[]).includes(p.id);
-          return (m.equipe1||[]).includes(p.id) || (m.equipe2||[]).includes(p.id);
-        }).length;
-
-        if (count >= MIN_PARTIES) {
-          totalWeight += weights[fmt];
-          totalScore += score * weights[fmt];
-          activeFormats.push(fmt);
-        }
+        // Poids = poids de base × proportion de matchs dans ce format
+        const w = baseWeights[fmt] * (counts[fmt] / totalMatches);
+        totalWeight += w;
+        totalScore += score * w;
+        activeFormats.push(fmt);
       }
 
-      if (totalWeight === 0) {
-        return { score: 1000, formats: [] };
-      }
+      if (totalWeight === 0) return { score: 1000, formats: [] };
 
       return {
         score: Math.round(totalScore / totalWeight),
@@ -4041,14 +4132,15 @@
         const cs = pepCoeffScore(ecart, maxPts);
         totalG += PEP_TABLE[levels[gIdx]][levels[pIdx]] * cs * coeff;
       }
-      result[ids[gIdx]] = Math.round(totalG / perdants.length);
+      const belleCoeff1v1v1 = maxPts === 15 ? 1.2 : 1.0;
+      result[ids[gIdx]] = Math.round(totalG / perdants.length * belleCoeff1v1v1);
 
       // Perdants : perdent le même montant que le gagnant a gagné contre eux (symétrique)
       for (const pIdx of perdants) {
         const ecart = Math.abs(scores[gIdx] - scores[pIdx]);
         const cs = pepCoeffScore(ecart, maxPts);
         const ptsP = PEP_TABLE[levels[gIdx]][levels[pIdx]]; // lu du côté gagnant, symétrique
-        result[ids[pIdx]] = -Math.round(ptsP * cs * coeff);
+        result[ids[pIdx]] = -Math.round(ptsP * cs * coeff * belleCoeff1v1v1);
       }
 
       return result;
@@ -6066,9 +6158,16 @@
 
     function goToScore3v3() {
       const ids=['select-3v3-j1','select-3v3-j2','select-3v3-j3','select-3v3-j4','select-3v3-j5','select-3v3-j6'].map(id=>document.getElementById(id).value);
-      const players=ids.map(id=>window._players.find(p=>p.id===id)||{nom:'?',id});
-      document.getElementById('score-name-eq1-3v3').textContent=`${players[0].nom}, ${players[1].nom}, ${players[2].nom}`;
-      document.getElementById('score-name-eq2-3v3').textContent=`${players[3].nom}, ${players[4].nom}, ${players[5].nom}`;
+      const resolveName3v3 = id => {
+        if (!id) return '?';
+        const p = (window._players||[]).find(p=>p.id===id);
+        if (p) return p.nom;
+        const gn = window._guestNames || {};
+        return gn[id] || id.replace('guest_','') || '?';
+      };
+      const players=ids.map(id=>window._players.find(p=>p.id===id)||{nom:resolveName3v3(id),id});
+      document.getElementById('score-name-eq1-3v3').textContent=`${resolveName3v3(ids[0])}, ${resolveName3v3(ids[1])}, ${resolveName3v3(ids[2])}`;
+      document.getElementById('score-name-eq2-3v3').textContent=`${resolveName3v3(ids[3])}, ${resolveName3v3(ids[4])}, ${resolveName3v3(ids[5])}`;
       [[players[0],'score-avatar-3v3-j1'],[players[1],'score-avatar-3v3-j2'],[players[2],'score-avatar-3v3-j3'],
        [players[3],'score-avatar-3v3-j4'],[players[4],'score-avatar-3v3-j5'],[players[5],'score-avatar-3v3-j6']].forEach(([p,id])=>setAvatar(id,p));
       document.getElementById('input-score-3v3-eq1').value='';
@@ -6121,8 +6220,11 @@
         matchData3v3.isBourre = document.getElementById('check-bourre-3v3')?.checked||false;
         const _hasGuest3v3 = matchHasGuest([j1,j2,j3,j4,j5,j6]);
         const deltas3v3 = calculerPEP_equipe(matchData3v3, window._players||[]);
-        const _players3v3snap = _hasGuest3v3 ? null : JSON.parse(JSON.stringify(window._players||[]));
+        const _players3v3snap = JSON.parse(JSON.stringify(window._players||[]));
         matchData3v3.pepDeltas = deltas3v3;
+        const _genD3v3={};
+        if(deltas3v3){Object.entries(deltas3v3).forEach(([id,delta])=>{const p=_players3v3snap.find(x=>x.id===id);if(p){const sb=p.pepScore_3v3??1000;const b=calcPepGeneral({...p,pepScore_3v3:sb}).score;const a=calcPepGeneral({...p,pepScore_3v3:sb+delta}).score;_genD3v3[id]=a-b;}});}
+        if(Object.values(_genD3v3).some(v=>v!==0)) matchData3v3.genDeltas=_genD3v3;
         if (!window._colParties) { showToast('⚠️ Rejoins une ligue dabord !'); return; }
         await window._addDoc(window._colParties(), matchData3v3);
         if (deltas3v3) { await appliquerPEP(deltas3v3, _players3v3snap, '3v3'); }
@@ -6203,7 +6305,13 @@
         await window._addDoc(window._colParties(), matchData1v1v1);
         const deltas1v1v1 = calculerPEP_1v1v1(matchData1v1v1, window._players||[]);
         const _hasGuest1v1v1 = matchHasGuest(ids);
-        { const _snap1v1v1=JSON.parse(JSON.stringify(window._players||[])); await appliquerPEP(deltas1v1v1, _snap1v1v1, '1v1v1'); }
+        {
+          const _snap1v1v1=JSON.parse(JSON.stringify(window._players||[]));
+          const _genD1v1v1={};
+          Object.entries(deltas1v1v1).forEach(([id,delta])=>{const p=_snap1v1v1.find(x=>x.id===id);if(p){const before=calcPepGeneral(p).score;const after=calcPepGeneral({...p,pepScore_1v1v1:(p.pepScore_1v1v1??1000)+delta}).score;_genD1v1v1[id]=after-before;}});
+          if(Object.values(_genD1v1v1).some(v=>v!==0)) matchData1v1v1.genDeltas=_genD1v1v1;
+          await appliquerPEP(deltas1v1v1, _snap1v1v1, '1v1v1');
+        }
         showPage('page-home'); showToast(_hasGuest1v1v1 ? '🎯 Partie enregistrée · PEP non comptabilisé (invité)' : '🎯 Partie 1v1v1 enregistrée !'); if(scores.some(s=>s===0)){setTimeout(() => window.showFanny('le perdant'), 600);}
       }catch(e){
         document.getElementById('score-1v1v1-error').textContent='Erreur : '+e.message;
