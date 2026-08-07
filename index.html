@@ -2737,13 +2737,13 @@
             if (!top) return '';
             const p = players.find(x=>x.id===top[0]);
             if (!p) return '';
-            const el = document.createElement('div');
-            el.style.cssText = 'background:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer';
-            el.onclick = function(){openStatsDetail('clutch');};
-            el.innerHTML = '<div style="font-size:9px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">⭐ Joueur Clutch</div>'
+            const _cd = document.createElement('div');
+            _cd.style.cssText = 'background:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer';
+            _cd.setAttribute('onclick', 'openStatsDetail("clutch")');
+            _cd.innerHTML = '<div style="font-size:9px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">⭐ Joueur Clutch</div>'
               + '<div style="font-size:16px;font-weight:900;color:var(--text);line-height:1;margin-top:2px">'+p.nom+'</div>'
               + '<div style="font-size:11px;color:#fbbf24;font-weight:700;margin-top:3px">'+top[1]+' finale'+(top[1]>1?'s':'')+' gagnée'+(top[1]>1?'s':'')+'</div>';
-            return el.outerHTML;
+            return _cd.outerHTML;
           })()}
           ${topStreakPlayer && topStreak >= 1 ? `<div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer" onclick="openStatsDetail('series')">
             <div style="font-size:9px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">🔥 Série en cours</div>
@@ -3186,19 +3186,31 @@
       const eq1 = (m.equipe1||[]).map(id => resolvePlayerName(id, m)).join(' · ');
       const eq2 = (m.equipe2||[]).map(id => resolvePlayerName(id, m)).join(' · ');
       const g1w = m.gagnantEquipe === 1;
-      // Pour équipes, afficher delta général de chaque joueur à côté de son badge PEP
-      function pepBadgeWithGen(playerId) {
-        const badge = pepBadge(playerId);
-        if (!badge) return '';
-        if (m.genDeltas && m.genDeltas[playerId] !== undefined) {
-          const gd = m.genDeltas[playerId];
-          const sign = gd >= 0 ? '+' : '';
-          return badge + '<span style="font-size:9px;font-weight:600;color:var(--text2);margin-left:3px;white-space:nowrap">(gén. '+sign+gd+')</span>';
-        }
+      // Pour équipes, afficher le PEP + le (gén. X) de CHAQUE joueur de l'équipe, pas juste le 1er
+      function pepBadgeTeam(equipe) {
+        const ids = (equipe||[]).filter(id=>id);
+        if (!ids.length) return '';
+        const delta = getPepDeltaForPlayer(m, ids[0]);
+        if (delta === null || delta === undefined) return '';
+        const col = delta > 0 ? 'var(--green)' : delta < 0 ? 'var(--red)' : 'var(--text2)';
+        const bg = delta > 0 ? 'var(--green-light)' : delta < 0 ? 'var(--red-light)' : 'var(--bg3)';
+        const sign = delta > 0 ? '+' : '';
+        let badge = `<span style="font-size:10px;font-weight:700;color:${col};background:${bg};border-radius:5px;padding:1px 6px;white-space:nowrap">${sign}${delta} PEP</span>`;
+        ids.filter(id=>!id.startsWith('guest_')).forEach(id=>{
+          let gd = null;
+          if (m.genDeltas && m.genDeltas[id] !== undefined) {
+            gd = m.genDeltas[id];
+          } else {
+            const w = m.format==='2v2'?0.8:m.format==='3v3'?0.6:1.0;
+            gd = Math.round(delta * w);
+          }
+          const genSign = gd >= 0 ? '+' : '';
+          badge += `<span style="font-size:9px;font-weight:600;color:var(--text2);margin-left:3px;white-space:nowrap">(gén. ${genSign}${gd})</span>`;
+        });
         return badge;
       }
-      const pep1 = pepBadgeWithGen((m.equipe1||[])[0]);
-      const pep2 = pepBadgeWithGen((m.equipe2||[])[0]);
+      const pep1 = pepBadgeTeam(m.equipe1);
+      const pep2 = pepBadgeTeam(m.equipe2);
       // Delta général par joueur - calculé une seule fois avant le template
       function genDeltaStr(equipe) {
         if (!m.genDeltas) return '';
@@ -3786,8 +3798,8 @@
         if (counts[fmt] === 0) continue;
         const field = 'pepScore_' + fmt;
         const score = p[field] ?? 1000;
-        // Poids = poids de base × proportion de matchs dans ce format
-        const w = baseWeights[fmt] * (counts[fmt] / totalMatches);
+        // Poids = poids de base × proportion de matchs dans ce format, avec plancher 15%
+        const w = baseWeights[fmt] * Math.max(0.15, counts[fmt] / totalMatches);
         totalWeight += w;
         totalScore += score * w;
         activeFormats.push(fmt);
@@ -6221,9 +6233,10 @@
         const _hasGuest3v3 = matchHasGuest([j1,j2,j3,j4,j5,j6]);
         const deltas3v3 = calculerPEP_equipe(matchData3v3, window._players||[]);
         const _players3v3snap = JSON.parse(JSON.stringify(window._players||[]));
+        const _matchesSnap3v3 = (window._matches||[]).slice();
         matchData3v3.pepDeltas = deltas3v3;
         const _genD3v3={};
-        if(deltas3v3){Object.entries(deltas3v3).forEach(([id,delta])=>{const p=_players3v3snap.find(x=>x.id===id);if(p){const sb=p.pepScore_3v3??1000;const b=calcPepGeneral({...p,pepScore_3v3:sb}).score;const a=calcPepGeneral({...p,pepScore_3v3:sb+delta}).score;_genD3v3[id]=a-b;}});}
+        if(deltas3v3){Object.entries(deltas3v3).forEach(([id,delta])=>{const p=_players3v3snap.find(x=>x.id===id);if(p){const sb=p.pepScore_3v3??1000;const b=calcPepGeneral({...p,pepScore_3v3:sb},_matchesSnap3v3).score;const a=calcPepGeneral({...p,pepScore_3v3:sb+delta},[..._matchesSnap3v3,{format:'3v3',equipe1:matchData3v3.equipe1,equipe2:matchData3v3.equipe2}]).score;_genD3v3[id]=a-b;}});}
         if(Object.values(_genD3v3).some(v=>v!==0)) matchData3v3.genDeltas=_genD3v3;
         if (!window._colParties) { showToast('⚠️ Rejoins une ligue dabord !'); return; }
         await window._addDoc(window._colParties(), matchData3v3);
@@ -6302,14 +6315,15 @@
         };
         matchData1v1v1.isBourre = document.getElementById('check-bourre-1v1v1')?.checked||false;
         if (!window._colParties) { showToast('⚠️ Rejoins une ligue dabord !'); return; }
-        await window._addDoc(window._colParties(), matchData1v1v1);
         const deltas1v1v1 = calculerPEP_1v1v1(matchData1v1v1, window._players||[]);
         const _hasGuest1v1v1 = matchHasGuest(ids);
+        const _snap1v1v1=JSON.parse(JSON.stringify(window._players||[]));
+        const _matchesSnap1v1v1 = (window._matches||[]).slice();
+        const _genD1v1v1={};
+        Object.entries(deltas1v1v1).forEach(([id,delta])=>{const p=_snap1v1v1.find(x=>x.id===id);if(p){const sb=p.pepScore_1v1v1??1000;const before=calcPepGeneral({...p,pepScore_1v1v1:sb},_matchesSnap1v1v1).score;const after=calcPepGeneral({...p,pepScore_1v1v1:sb+delta},[..._matchesSnap1v1v1,{format:'1v1v1',joueurs:ids}]).score;_genD1v1v1[id]=after-before;}});
+        if(Object.values(_genD1v1v1).some(v=>v!==0)) matchData1v1v1.genDeltas=_genD1v1v1;
+        await window._addDoc(window._colParties(), matchData1v1v1);
         {
-          const _snap1v1v1=JSON.parse(JSON.stringify(window._players||[]));
-          const _genD1v1v1={};
-          Object.entries(deltas1v1v1).forEach(([id,delta])=>{const p=_snap1v1v1.find(x=>x.id===id);if(p){const before=calcPepGeneral(p).score;const after=calcPepGeneral({...p,pepScore_1v1v1:(p.pepScore_1v1v1??1000)+delta}).score;_genD1v1v1[id]=after-before;}});
-          if(Object.values(_genD1v1v1).some(v=>v!==0)) matchData1v1v1.genDeltas=_genD1v1v1;
           await appliquerPEP(deltas1v1v1, _snap1v1v1, '1v1v1');
         }
         showPage('page-home'); showToast(_hasGuest1v1v1 ? '🎯 Partie enregistrée · PEP non comptabilisé (invité)' : '🎯 Partie 1v1v1 enregistrée !'); if(scores.some(s=>s===0)){setTimeout(() => window.showFanny('le perdant'), 600);}
