@@ -2182,10 +2182,7 @@
         const _isBourre1=document.getElementById('check-bourre')?.checked||false;
         const _md1={format:'1v1',subFormat:window._currentSubFormat,maxPts:window._maxPts||13,joueur1Id:j1id,joueur2Id:j2id,score1:s1,score2:s2,gagnantId:s1>s2?j1id:j2id,date:Date.now(),playerNames:_pn1,pepDeltas:_d1v1,isBourre:_isBourre1};
         if (!window._colParties) { showToast('⚠️ Rejoins une ligue dabord !'); return; }
-        // Calculer genDeltas avant addDoc
-        const _gd1v1={};
-        Object.entries(_d1v1).forEach(([id,d])=>{const p=_snap1v1early.find(x=>x.id===id)||{pepScore_1v1:1000,pepScore_1v1v1:1000,pepScore_2v2:1000,pepScore_3v3:1000};const scoreBefore=p.pepScore_1v1??1000;const b=calcPepGeneral({...p,pepScore_1v1:scoreBefore},_matchesSnap1v1).score;const a=calcPepGeneral({...p,pepScore_1v1:scoreBefore+d},[...(_matchesSnap1v1||[]),{format:'1v1',joueur1Id:_md1.joueur1Id,joueur2Id:_md1.joueur2Id}]).score;_gd1v1[id]=a-b;});
-        if(Object.values(_gd1v1).some(v=>v!==0)) _md1.genDeltas=_gd1v1;
+        _md1.genDeltas = _d1v1;
         await window._addDoc(window._colParties(),_md1);
         const _hasGuest1v1 = matchHasGuest([j1id, j2id]);
         await appliquerPEP(_d1v1,_snap1v1early,'1v1');
@@ -2285,13 +2282,7 @@
         const _players2v2snap = [...(window._players||[])];
         matchData2v2.pepDeltas = _deltas2v2;
         if (!window._colParties) { showToast('⚠️ Rejoins une ligue dabord !'); return; }
-        // Calculer genDeltas avant d'enregistrer
-                // Snapshot des matchs AVANT l'ajout pour genDeltas
-        const _matchesSnap2v2 = [...(window._matches||[])]
-        // Calculer genDeltas avant d'enregistrer
-        const _genDeltas2v2={};
-        if(_deltas2v2){Object.entries(_deltas2v2).forEach(([id,delta])=>{const p=_players2v2snap.find(x=>x.id===id);if(p){const sb2v2=p.pepScore_2v2??1000;const before=calcPepGeneral({...p,pepScore_2v2:sb2v2},_matchesSnap2v2).score;const after=calcPepGeneral({...p,pepScore_2v2:sb2v2+delta},[...(_matchesSnap2v2||[]),{format:'2v2',equipe1:matchData2v2.equipe1,equipe2:matchData2v2.equipe2}]).score;_genDeltas2v2[id]=after-before;}});}
-        if(Object.values(_genDeltas2v2).some(v=>v!==0)) matchData2v2.genDeltas=_genDeltas2v2;
+        if (_deltas2v2) matchData2v2.genDeltas = _deltas2v2;
         await window._addDoc(window._colParties(), matchData2v2);
         if (_deltas2v2) { await appliquerPEP(_deltas2v2, _players2v2snap, '2v2'); }
         showPage('page-home'); showToast(_hasGuest2v2 ? '🎯 Partie enregistrée · PEP non comptabilisé (invité)' : '🎯 Partie 2v2 enregistrée !'); if(s1===0||s2===0){setTimeout(() => window.showFanny('le perdant'), 600);}
@@ -3111,22 +3102,7 @@
         const col = delta > 0 ? 'var(--green)' : delta < 0 ? 'var(--red)' : 'var(--text2)';
         const bg = delta > 0 ? 'var(--green-light)' : delta < 0 ? 'var(--red-light)' : 'var(--bg3)';
         const sign = delta > 0 ? '+' : '';
-        // Delta général : utiliser si stocké, sinon = delta format si premier match
-        let genDeltaStr = '';
-        let genDelta = null;
-        if (m.genDeltas && m.genDeltas[playerId] !== undefined) {
-          genDelta = m.genDeltas[playerId];
-        } else if (delta !== null && delta !== undefined) {
-          // Premier match : delta général ≈ delta format pondéré
-          const fmt = m.format;
-          const w = fmt==='2v2'?0.8:fmt==='3v3'?0.6:1.0;
-          genDelta = Math.round(delta * w);
-        }
-        if (genDelta !== null) {
-          const genSign = genDelta > 0 ? '+' : '';
-          genDeltaStr = `<span style="font-size:9px;font-weight:600;color:var(--text2);margin-left:3px;white-space:nowrap">(gén. ${genSign}${genDelta})</span>`;
-        }
-        return `<span style="font-size:10px;font-weight:700;color:${col};background:${bg};border-radius:5px;padding:1px 6px;white-space:nowrap">${sign}${delta} PEP</span>${genDeltaStr}`;
+        return `<span style="font-size:10px;font-weight:700;color:${col};background:${bg};border-radius:5px;padding:1px 6px;white-space:nowrap">${sign}${delta} PEP</span>`;
       }
 
       const fmtLabel = {'1v1':'1v1','1v1v1':'1v1v1','2v2':'Double','3v3':'Triplette'}[m.format] || m.format;
@@ -3195,19 +3171,7 @@
         const col = delta > 0 ? 'var(--green)' : delta < 0 ? 'var(--red)' : 'var(--text2)';
         const bg = delta > 0 ? 'var(--green-light)' : delta < 0 ? 'var(--red-light)' : 'var(--bg3)';
         const sign = delta > 0 ? '+' : '';
-        let badge = `<span style="font-size:10px;font-weight:700;color:${col};background:${bg};border-radius:5px;padding:1px 6px;white-space:nowrap">${sign}${delta} PEP</span>`;
-        ids.filter(id=>!id.startsWith('guest_')).forEach(id=>{
-          let gd = null;
-          if (m.genDeltas && m.genDeltas[id] !== undefined) {
-            gd = m.genDeltas[id];
-          } else {
-            const w = m.format==='2v2'?0.8:m.format==='3v3'?0.6:1.0;
-            gd = Math.round(delta * w);
-          }
-          const genSign = gd >= 0 ? '+' : '';
-          badge += `<span style="font-size:9px;font-weight:600;color:var(--text2);margin-left:3px;white-space:nowrap">(gén. ${genSign}${gd})</span>`;
-        });
-        return badge;
+        return `<span style="font-size:10px;font-weight:700;color:${col};background:${bg};border-radius:5px;padding:1px 6px;white-space:nowrap">${sign}${delta} PEP</span>`;
       }
       const pep1 = pepBadgeTeam(m.equipe1);
       const pep2 = pepBadgeTeam(m.equipe2);
@@ -3769,48 +3733,10 @@
       </div>`;
     }
 
-    function calcPepGeneral(p, matchesOverride) {
-      const matches = matchesOverride || window._matches || [];
-      const formats = ['1v1','1v1v1','2v2','3v3'];
-      const baseWeights = {'1v1':1.0,'1v1v1':1.0,'2v2':0.8,'3v3':0.6};
-
-      // Compter les matchs par format pour ce joueur
-      const counts = {};
-      let totalMatches = 0;
-      for (const fmt of formats) {
-        const c = matches.filter(m => {
-          if (m.format !== fmt) return false;
-          if (fmt === '1v1') return m.joueur1Id === p.id || m.joueur2Id === p.id;
-          if (fmt === '1v1v1') return (m.joueurs||[]).includes(p.id);
-          return (m.equipe1||[]).includes(p.id) || (m.equipe2||[]).includes(p.id);
-        }).length;
-        counts[fmt] = c;
-        totalMatches += c;
-      }
-
-      if (totalMatches === 0) return { score: 1000, formats: [] };
-
-      let totalWeight = 0;
-      let totalScore = 0;
-      const activeFormats = [];
-
-      for (const fmt of formats) {
-        if (counts[fmt] === 0) continue;
-        const field = 'pepScore_' + fmt;
-        const score = p[field] ?? 1000;
-        // Poids = poids de base × proportion de matchs dans ce format, avec plancher 15%
-        const w = baseWeights[fmt] * Math.max(0.15, counts[fmt] / totalMatches);
-        totalWeight += w;
-        totalScore += score * w;
-        activeFormats.push(fmt);
-      }
-
-      if (totalWeight === 0) return { score: 1000, formats: [] };
-
-      return {
-        score: Math.round(totalScore / totalWeight),
-        formats: activeFormats
-      };
+    function calcPepGeneral(p) {
+      // Le général est un score indépendant, alimenté match par match (voir appliquerPEP),
+      // plus une moyenne dérivée des scores par format.
+      return { score: p?.pepScore_general ?? 1000, formats: [] };
     }
 
         function rankAvatarHtml(p, size=32) {
@@ -4023,7 +3949,7 @@
       const exists=(window._players||[]).find(p=>p.nom.toLowerCase()===name.toLowerCase());
       if(exists){showToast('Ce pseudo existe déjà !');return;}
       try{
-        const data={nom:name,createdAt:Date.now(),pepScore_1v1:1000,pepScore_1v1v1:1000,pepScore_2v2:1000,pepScore_3v3:1000};
+        const data={nom:name,createdAt:Date.now(),pepScore_1v1:1000,pepScore_1v1v1:1000,pepScore_2v2:1000,pepScore_3v3:1000,pepScore_general:1000};
         if(currentPhotoBase64)data.photo=currentPhotoBase64;
         if (!window._colJoueurs) { showToast('⚠️ Rejoins une ligue dabord !'); return; }
         await window._addDoc(window._colJoueurs(),data);
@@ -4199,7 +4125,7 @@
     }
     window.calculerPEP_equipe = calculerPEP_equipe;
 
-    // Applique les deltas PEP à Firebase — champ spécifique par format
+    // Applique les deltas PEP à Firebase — champ spécifique par format + général indépendant
     async function appliquerPEP(deltas, players, format) {
       const field = format === '1v1' ? 'pepScore_1v1'
                   : format === '1v1v1' ? 'pepScore_1v1v1'
@@ -4212,8 +4138,10 @@
         if (!player) continue;
         const current = player[field] ?? 1000;
         const newScore = Math.max(0, Math.min(2000, current + delta));
+        const currentGen = player.pepScore_general ?? 1000;
+        const newGen = Math.max(0, Math.min(2000, currentGen + delta));
 
-        if (window._docJoueur) await window._updateDoc(window._docJoueur(id), { [field]: newScore });
+        if (window._docJoueur) await window._updateDoc(window._docJoueur(id), { [field]: newScore, pepScore_general: newGen });
       }
     }
     window.appliquerPEP = appliquerPEP;
@@ -6235,9 +6163,7 @@
         const _players3v3snap = JSON.parse(JSON.stringify(window._players||[]));
         const _matchesSnap3v3 = (window._matches||[]).slice();
         matchData3v3.pepDeltas = deltas3v3;
-        const _genD3v3={};
-        if(deltas3v3){Object.entries(deltas3v3).forEach(([id,delta])=>{const p=_players3v3snap.find(x=>x.id===id);if(p){const sb=p.pepScore_3v3??1000;const b=calcPepGeneral({...p,pepScore_3v3:sb},_matchesSnap3v3).score;const a=calcPepGeneral({...p,pepScore_3v3:sb+delta},[..._matchesSnap3v3,{format:'3v3',equipe1:matchData3v3.equipe1,equipe2:matchData3v3.equipe2}]).score;_genD3v3[id]=a-b;}});}
-        if(Object.values(_genD3v3).some(v=>v!==0)) matchData3v3.genDeltas=_genD3v3;
+        if (deltas3v3) matchData3v3.genDeltas = deltas3v3;
         if (!window._colParties) { showToast('⚠️ Rejoins une ligue dabord !'); return; }
         await window._addDoc(window._colParties(), matchData3v3);
         if (deltas3v3) { await appliquerPEP(deltas3v3, _players3v3snap, '3v3'); }
@@ -6318,10 +6244,7 @@
         const deltas1v1v1 = calculerPEP_1v1v1(matchData1v1v1, window._players||[]);
         const _hasGuest1v1v1 = matchHasGuest(ids);
         const _snap1v1v1=JSON.parse(JSON.stringify(window._players||[]));
-        const _matchesSnap1v1v1 = (window._matches||[]).slice();
-        const _genD1v1v1={};
-        Object.entries(deltas1v1v1).forEach(([id,delta])=>{const p=_snap1v1v1.find(x=>x.id===id);if(p){const sb=p.pepScore_1v1v1??1000;const before=calcPepGeneral({...p,pepScore_1v1v1:sb},_matchesSnap1v1v1).score;const after=calcPepGeneral({...p,pepScore_1v1v1:sb+delta},[..._matchesSnap1v1v1,{format:'1v1v1',joueurs:ids}]).score;_genD1v1v1[id]=after-before;}});
-        if(Object.values(_genD1v1v1).some(v=>v!==0)) matchData1v1v1.genDeltas=_genD1v1v1;
+        matchData1v1v1.genDeltas = deltas1v1v1;
         await window._addDoc(window._colParties(), matchData1v1v1);
         {
           await appliquerPEP(deltas1v1v1, _snap1v1v1, '1v1v1');
