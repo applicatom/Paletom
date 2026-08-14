@@ -599,8 +599,20 @@
     <!-- Liste des ligues -->
     <div style="padding:14px 16px 0">
       <div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:8px">Mes ligues</div>
-      <div id="ligue-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      <div id="ligue-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
         <div class="empty-state"><div class="es-icon">⏳</div><div class="es-title">Chargement…</div></div>
+      </div>
+
+      <div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:8px">Rejoindre une ligue</div>
+      <div style="background:#fff;border-radius:14px;padding:14px;box-shadow:var(--shadow);margin-bottom:20px">
+        <div style="display:flex;gap:8px">
+          <input id="ligue-code-input" type="text" placeholder="Code (ex : PALET-4F7K)" autocapitalize="characters"
+            style="flex:1;background:var(--bg);border:1.5px solid var(--border2);border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600;color:var(--text);outline:none;font-family:inherit"/>
+          <button onclick="rejoindreParCode()"
+            style="background:var(--navy);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">
+            OK
+          </button>
+        </div>
       </div>
     </div>
 
@@ -772,6 +784,14 @@
       <div>
         <div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:8px">Ligue</div>
         <div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">
+          <div onclick="partagerCodeLigue()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--border)">
+            <div style="font-size:22px;width:36px;text-align:center">🔑</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:14px;font-weight:700;color:var(--text)">Code d'accès</div>
+              <div id="settings-ligue-code" style="font-size:13px;font-weight:800;color:var(--navy);font-family:monospace;margin-top:2px">—</div>
+            </div>
+            <div style="color:var(--text2);font-size:16px">📤</div>
+          </div>
           <div onclick="changerLigue()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer">
             <div style="font-size:22px;width:36px;text-align:center">🔀</div>
             <div style="font-size:14px;font-weight:700;color:var(--text);flex:1">Changer de ligue</div>
@@ -801,9 +821,19 @@
             <div style="font-size:14px;font-weight:700;color:var(--text);flex:1">Mettre à jour l'application</div>
             <div style="color:var(--text2);font-size:18px">›</div>
           </div>
-          <div onclick="showPage('page-ideas')" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer">
+          <div onclick="showPage('page-ideas')" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--border)">
             <div style="font-size:22px;width:36px;text-align:center">💡</div>
             <div style="font-size:14px;font-weight:700;color:var(--text);flex:1">Idées & suggestions</div>
+            <div style="color:var(--text2);font-size:18px">›</div>
+          </div>
+          <div onclick="exporterSauvegarde()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--border)">
+            <div style="font-size:22px;width:36px;text-align:center">💾</div>
+            <div style="font-size:14px;font-weight:700;color:var(--text2);flex:1">Sauvegarder les données</div>
+            <div style="color:var(--text2);font-size:18px">›</div>
+          </div>
+          <div onclick="lancerImportSauvegarde()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer">
+            <div style="font-size:22px;width:36px;text-align:center">♻️</div>
+            <div style="font-size:14px;font-weight:700;color:var(--text2);flex:1">Restaurer une sauvegarde</div>
             <div style="color:var(--text2);font-size:18px">›</div>
           </div>
         </div>
@@ -1419,6 +1449,15 @@
       <div class="modal-handle"></div>
       <div class="modal-title" id="edit-match-title">Modifier la partie</div>
       <div id="edit-match-body"></div>
+    </div>
+  </div>
+
+  <!-- MODAL CODE NOUVELLE LIGUE -->
+  <div class="modal-overlay" id="modal-code-ligue" onclick="closeModal('modal-code-ligue')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="modal-title">🔑 Code d'accès</div>
+      <div id="code-ligue-body"></div>
     </div>
   </div>
 
@@ -4171,19 +4210,192 @@
     // SYSTÈME LIGUES
     // ══════════════════════════════════════════════════════
 
+    // ===== LIGUES : liste locale (localStorage) =====
+    const MASTER_CODE = 'PALETOM-ADMIN';
+
+    function getMesLigues() {
+      try { return JSON.parse(localStorage.getItem('paletom_mes_ligues') || '[]'); }
+      catch(e) { return []; }
+    }
+    function addMaLigue(ligueId) {
+      const l = getMesLigues();
+      if (!l.includes(ligueId)) { l.push(ligueId); localStorage.setItem('paletom_mes_ligues', JSON.stringify(l)); }
+    }
+    function removeMaLigue(ligueId) {
+      const l = getMesLigues().filter(id => id !== ligueId);
+      localStorage.setItem('paletom_mes_ligues', JSON.stringify(l));
+      if (window._currentLigueId === ligueId) {
+        window._currentLigueId = null;
+        localStorage.removeItem('paletom_ligue_id');
+        localStorage.removeItem('paletom_ligue_nom');
+      }
+      renderLigueList();
+      showToast('Ligue retirée de ta liste');
+    }
+    window.removeMaLigue = removeMaLigue;
+
+    async function partagerCodeLigue() {
+      const ligue = (window._ligues||[]).find(l => l.id === window._currentLigueId);
+      if (!ligue?.code) { showToast('⚠️ Cette ligue n\'a pas de code'); return; }
+      const txt = 'Salut ! Viens te faire froisser au palet en rejoignant ma ligue "' + ligue.nom + '" !\nCode d\'accès : ' + ligue.code + '\nhttps://thmoreau4.github.io/Paletom';
+      try {
+        if (navigator.share) { await navigator.share({ text: txt }); return; }
+        await navigator.clipboard.writeText(txt);
+        showToast('📋 Code copié !');
+      } catch(e) { showToast('Code : ' + ligue.code); }
+    }
+    window.partagerCodeLigue = partagerCodeLigue;
+
+    // ===== SAUVEGARDE : export complet de la base en JSON =====
+    async function exporterSauvegarde() {
+      const saisie = prompt('Code administrateur requis pour la sauvegarde :');
+      if (saisie === null) return;
+      if (saisie.trim().toUpperCase() !== MASTER_CODE) { showToast('❌ Code incorrect'); return; }
+      if (!window._db || !window._getDocs || !window._collection) { showToast('❌ Base indisponible'); return; }
+      showToast('⏳ Export en cours…');
+      try {
+        const dump = { exportedAt: new Date().toISOString(), ligues: [] };
+        const liguesSnap = await window._getDocs(window._collection(window._db, 'ligues'));
+        for (const lDoc of liguesSnap.docs) {
+          const ligue = { id: lDoc.id, ...lDoc.data(), joueurs: [], parties: [] };
+          const [jSnap, pSnap] = await Promise.all([
+            window._getDocs(window._collection(window._db, 'ligues', lDoc.id, 'joueurs')),
+            window._getDocs(window._collection(window._db, 'ligues', lDoc.id, 'parties'))
+          ]);
+          ligue.joueurs = jSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          ligue.parties = pSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          dump.ligues.push(ligue);
+        }
+        const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'paletom-sauvegarde-' + new Date().toISOString().slice(0,10) + '.json';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('✅ Sauvegarde téléchargée (' + dump.ligues.length + ' ligue(s))');
+      } catch(e) { showToast('❌ Erreur export : ' + e.message); }
+    }
+    window.exporterSauvegarde = exporterSauvegarde;
+
+    // ===== RESTAURATION : import d'une sauvegarde JSON =====
+    function lancerImportSauvegarde() {
+      const saisie = prompt('Code administrateur requis pour la restauration :');
+      if (saisie === null) return;
+      if (saisie.trim().toUpperCase() !== MASTER_CODE) { showToast('❌ Code incorrect'); return; }
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json,.json';
+      input.onchange = () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try { importerSauvegarde(JSON.parse(reader.result)); }
+          catch(e) { showToast('❌ Fichier illisible'); }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+    window.lancerImportSauvegarde = lancerImportSauvegarde;
+
+    async function importerSauvegarde(dump) {
+      if (!dump?.ligues?.length) { showToast('❌ Sauvegarde vide ou invalide'); return; }
+      const nbJ = dump.ligues.reduce((n,l) => n + (l.joueurs?.length||0), 0);
+      const nbP = dump.ligues.reduce((n,l) => n + (l.parties?.length||0), 0);
+      if (!confirm('Restaurer ' + dump.ligues.length + ' ligue(s), ' + nbJ + ' joueur(s) et ' + nbP + ' partie(s) ?\n\nLes données portant le même identifiant seront écrasées. Les données ajoutées depuis la sauvegarde ne seront pas supprimées.')) return;
+      showToast('⏳ Restauration en cours…');
+      try {
+        for (const l of dump.ligues) {
+          const { id, joueurs = [], parties = [], ...ligueData } = l;
+          await window._setDoc(window._doc(window._db, 'ligues', id), ligueData);
+          for (const j of joueurs) {
+            const { id: jid, ...jd } = j;
+            await window._setDoc(window._doc(window._db, 'ligues', id, 'joueurs', jid), jd);
+          }
+          for (const p of parties) {
+            const { id: pid, ...pd } = p;
+            await window._setDoc(window._doc(window._db, 'ligues', id, 'parties', pid), pd);
+          }
+        }
+        showToast('✅ Restauration terminée !');
+      } catch(e) { showToast('❌ Erreur : ' + e.message); }
+    }
+
+    function genererCodeLigue() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sans I/O/0/1 (confusion)
+      let c = '';
+      for (let i = 0; i < 4; i++) c += chars[Math.floor(Math.random() * chars.length)];
+      return 'PALET-' + c;
+    }
+
     async function creerLigue() {
       const nom = document.getElementById('ligue-name-input').value.trim();
       if (!nom) { showToast('⚠️ Entre un nom de ligue !'); return; }
       try {
+        const code = genererCodeLigue();
         const ligueRef = await window._addLigue({
-          nom: nom, createdAt: Date.now()
+          nom: nom, createdAt: Date.now(), code: code
         });
+        addMaLigue(ligueRef.id);
         rejoindreLigue(ligueRef.id, nom);
         document.getElementById('ligue-name-input').value = '';
-        showToast('✅ Ligue "' + nom + '" créée !');
+        afficherCodeNouvelleLigue(nom, code);
       } catch(e) { showToast('❌ Erreur : ' + e.message); }
     }
     window.creerLigue = creerLigue;
+
+    function afficherCodeNouvelleLigue(nom, code) {
+      window._nouveauCode = code;
+      window._nouveauNom = nom;
+      const body = document.getElementById('code-ligue-body');
+      if (body) {
+        body.innerHTML = `
+          <div style="text-align:center;font-size:13px;color:var(--text2);margin-bottom:10px">Ligue <strong style="color:var(--text)">${nom}</strong> créée !</div>
+          <div style="background:var(--bg);border:1.5px dashed var(--border2);border-radius:12px;padding:16px;text-align:center;margin-bottom:12px">
+            <div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:6px">Code d'accès</div>
+            <div style="font-size:24px;font-weight:900;font-family:monospace;color:var(--navy);letter-spacing:2px">${code}</div>
+          </div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:14px;text-align:center">Donne ce code à tes potes pour qu'ils rejoignent la ligue.<br/>Tu peux le retrouver à tout moment dans <strong>Paramètres → Ligue → Code d'accès</strong>.</div>
+          <button class="btn-cancel" onclick="copierNouveauCode()" style="margin-bottom:8px;background:var(--navy);color:#fff">📋 Copier l'invitation</button>
+          <button class="btn-cancel" onclick="closeModal('modal-code-ligue')">Fermer</button>`;
+      }
+      document.getElementById('modal-code-ligue')?.classList.add('open');
+    }
+
+    async function copierNouveauCode() {
+      const txt = 'Salut ! Viens te faire froisser au palet en rejoignant ma ligue "' + window._nouveauNom + '" !\nCode d\'accès : ' + window._nouveauCode + '\nhttps://thmoreau4.github.io/Paletom';
+      try {
+        if (navigator.share) { await navigator.share({ text: txt }); return; }
+        await navigator.clipboard.writeText(txt);
+        showToast('📋 Invitation copiée !');
+      } catch(e) { showToast('Code : ' + window._nouveauCode); }
+    }
+    window.copierNouveauCode = copierNouveauCode;
+
+    async function rejoindreParCode() {
+      const input = document.getElementById('ligue-code-input');
+      const saisie = (input?.value || '').trim().toUpperCase();
+      if (!saisie) { showToast('⚠️ Entre un code !'); return; }
+
+      if (saisie === MASTER_CODE) {
+        window._masterMode = true;
+        input.value = '';
+        renderLigueList();
+        showToast('🔑 Mode admin : toutes les ligues visibles');
+        return;
+      }
+
+      const ligue = (window._ligues || []).find(l => (l.code || '').toUpperCase() === saisie);
+      if (!ligue) { showToast('❌ Aucune ligue avec ce code'); return; }
+
+      addMaLigue(ligue.id);
+      input.value = '';
+      rejoindreLigue(ligue.id, ligue.nom);
+      showToast('✅ Bienvenue dans "' + ligue.nom + '" !');
+    }
+    window.rejoindreParCode = rejoindreParCode;
 
     function rejoindreLigue(ligueId, nom) {
       window._currentLigueId = ligueId;
@@ -4310,6 +4522,8 @@
       if (el2) el2.textContent = nom || '—';
       // Photo
       const ligue = (window._ligues||[]).find(l => l.id === ligueId);
+      const codeEl = document.getElementById('settings-ligue-code');
+      if (codeEl) codeEl.textContent = ligue?.code || '⚠️ aucun code';
       const av = document.getElementById('settings-ligue-avatar');
       if (av) {
         if (ligue?.photo) {
@@ -4322,11 +4536,14 @@
     window.loadSettingsLigue = loadSettingsLigue;
 
     function renderLigueList() {
-      const ligues = window._ligues || [];
+      const toutes = window._ligues || [];
+      const mesIds = getMesLigues();
+      const master = !!window._masterMode;
+      const ligues = master ? toutes : toutes.filter(l => mesIds.includes(l.id));
       const container = document.getElementById('ligue-list');
       if (!container) return;
       if (!ligues.length) {
-        container.innerHTML = '<div class="empty-state"><div class="es-icon">🏆</div><div class="es-title">Aucune ligue</div><div class="es-sub">Crée ta première ligue !</div></div>';
+        container.innerHTML = '<div class="empty-state"><div class="es-icon">🏆</div><div class="es-title">Aucune ligue</div><div class="es-sub">Rejoins-en une avec un code, ou crée la tienne !</div></div>';
         return;
       }
       container.innerHTML = ligues
@@ -4343,14 +4560,23 @@
             </div>
             <div onclick="rejoindreLigue('${l.id}','${l.nom.replace(/'/g,"\'")}')" style="flex:1;min-width:0;cursor:pointer">
               <div style="font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.nom}</div>
+              ${window._masterMode ? `<div style="font-size:11px;font-weight:800;color:var(--navy);margin-top:2px;font-family:monospace">${l.code || '⚠️ pas de code'}</div>` : ''}
               ${isActive ? `<div style="font-size:11px;font-weight:700;color:var(--accent);margin-top:2px">● Ligue active</div>` : '<div style="font-size:11px;color:var(--text2);margin-top:2px">Appuie pour rejoindre</div>'}
             </div>
             <div onclick="event.stopPropagation();renameLigue('${l.id}','${l.nom.replace(/'/g,"\'")}')" style="width:32px;height:32px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;flex-shrink:0">✏️</div>
+            <div onclick="event.stopPropagation();removeMaLigue('${l.id}')" style="width:32px;height:32px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;flex-shrink:0">✖️</div>
           </div>`;
         }).join('');
     }
     window.renderLigueList = renderLigueList;
 
+
+    // Migration : reprendre la ligue active existante dans la nouvelle liste locale
+    (function migrerMesLigues() {
+      if (localStorage.getItem('paletom_mes_ligues')) return;
+      const ancienne = localStorage.getItem('paletom_ligue_id');
+      localStorage.setItem('paletom_mes_ligues', JSON.stringify(ancienne ? [ancienne] : []));
+    })();
 
     // Init nom ligue
     const _initLigueNom = localStorage.getItem('paletom_ligue_nom');
@@ -6343,6 +6569,7 @@
     window._db = db;
     window._addDoc = addDoc;
     window._setDoc = setDoc;
+    window._doc = doc;
     window._deleteDoc = deleteDoc;
     window._updateDoc = updateDoc;
     window._collection = collection;
