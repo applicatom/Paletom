@@ -4237,7 +4237,7 @@
     async function partagerCodeLigue() {
       const ligue = (window._ligues||[]).find(l => l.id === window._currentLigueId);
       if (!ligue?.code) { showToast('⚠️ Cette ligue n\'a pas de code'); return; }
-      const txt = 'Salut ! Viens te faire froisser au palet en rejoignant ma ligue "' + ligue.nom + '" !\nCode d\'accès : ' + ligue.code + '\nhttps://thmoreau4.github.io/Paletom';
+      const txt = 'Salut ! Viens te faire froisser au palet en rejoignant ma ligue "' + ligue.nom + '" !\nCode d\'accès : ' + ligue.code + '\nhttps://thmoreau4.github.io/Paletom\n\n\ud83d\udca1 Astuce : ouvre le lien dans ton navigateur, puis utilise le menu Partager pour choisir \"Sur l\'\u00e9cran d\'accueil\" (ou \"Installer l\'application\") \u2014 comme \u00e7a tu l\'auras directement sur ton t\u00e9l\u00e9phone.';
       try {
         if (navigator.share) { await navigator.share({ text: txt }); return; }
         await navigator.clipboard.writeText(txt);
@@ -4365,7 +4365,7 @@
     }
 
     async function copierNouveauCode() {
-      const txt = 'Salut ! Viens te faire froisser au palet en rejoignant ma ligue "' + window._nouveauNom + '" !\nCode d\'accès : ' + window._nouveauCode + '\nhttps://thmoreau4.github.io/Paletom';
+      const txt = 'Salut ! Viens te faire froisser au palet en rejoignant ma ligue "' + window._nouveauNom + '" !\nCode d\'accès : ' + window._nouveauCode + '\nhttps://thmoreau4.github.io/Paletom\n\n\ud83d\udca1 Astuce : ouvre le lien dans ton navigateur, puis utilise le menu Partager pour choisir \"Sur l\'\u00e9cran d\'accueil\" (ou \"Installer l\'application\") \u2014 comme \u00e7a tu l\'auras directement sur ton t\u00e9l\u00e9phone.';
       try {
         if (navigator.share) { await navigator.share({ text: txt }); return; }
         await navigator.clipboard.writeText(txt);
@@ -6601,6 +6601,64 @@
       });
     }
     window.startLigueListeners = startLigueListeners;
+
+    // ===== DÉTECTION AUTO D'UNE NOUVELLE VERSION =====
+    // Compare la date du fichier en cours d'exécution avec celle du fichier en ligne.
+    // Aucune action manuelle : dès que tu commit sur GitHub, le bandeau apparaît chez les autres.
+    function afficherBandeauMAJ() {
+      if (document.getElementById('ecran-maj')) return;
+      const o = document.createElement('div');
+      o.id = 'ecran-maj';
+      o.style.cssText = 'position:fixed;inset:0;z-index:99999;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;color:#fff;font-family:inherit';
+      o.innerHTML =
+        '<div style="font-size:48px;margin-bottom:14px">\u{1F504}</div>' +
+        '<div style="font-size:22px;font-weight:900;margin-bottom:22px">Mets \u00e0 jour l\'application</div>' +
+        '<div style="background:#ffffff12;border-radius:14px;padding:16px;max-width:340px;text-align:left">' +
+          '<div style="display:flex;gap:10px;margin-bottom:12px"><div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#14532d;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div><div style="font-size:13px;line-height:1.5;color:#fff">Supprime l\'ic\u00f4ne <strong>Paletom</strong> de ton \u00e9cran d\'accueil</div></div>' +
+          '<div style="display:flex;gap:10px;margin-bottom:12px"><div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#14532d;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div><div style="font-size:13px;line-height:1.5;color:#fff">Ouvre ce lien dans ton navigateur :<br/><span style="font-weight:800;word-break:break-all">thmoreau4.github.io/Paletom</span></div></div>' +
+          '<div style="display:flex;gap:10px;margin-bottom:16px"><div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#14532d;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div><div style="font-size:13px;line-height:1.5;color:#fff">Menu <strong>Partager</strong> \u2192 <strong>\u00ab Sur l\'\u00e9cran d\'accueil \u00bb</strong> (ou <strong>\u00ab Installer l\'application \u00bb</strong>)</div></div>' +
+          '<button onclick="window.open(\'https://thmoreau4.github.io/Paletom\',\'_blank\')" style="width:100%;background:var(--accent);color:#14532d;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">Ouvrir le lien</button>' +
+        '</div>';
+      document.body.appendChild(o);
+    }
+
+    async function verifierNouvelleVersion() {
+      try {
+        const url = location.href.split('#')[0].split('?')[0];
+        const r = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        const serveur = r.headers.get('Last-Modified');
+        if (!serveur) return;
+        const dServeur = new Date(serveur).getTime();
+        const dLocale = new Date(document.lastModified).getTime();
+        // 2 min de tolérance pour éviter les faux positifs
+        if (dServeur - dLocale > 120000) afficherBandeauMAJ();
+      } catch(e) { /* hors ligne ou en-tête absent : on ne fait rien */ }
+    }
+    verifierNouvelleVersion();
+    // Re-vérifie quand l'app revient au premier plan
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) verifierNouvelleVersion();
+    });
+
+    // ===== GARDE-FOU DE VERSION =====
+    // Incrémenter APP_VERSION à chaque changement de format de données.
+    // Pour forcer la mise à jour : mettre minVersion à cette valeur dans Firestore (config/app).
+    const APP_VERSION = 2;
+    window.APP_VERSION = APP_VERSION;
+
+    function bloquerPourMAJ(minVersion) {
+      afficherBandeauMAJ();
+    }
+
+    async function verifierVersion() {
+      try {
+        const snap = await getDocs(collection(db, 'config'));
+        const cfg = snap.docs.find(d => d.id === 'app');
+        const min = cfg?.data()?.minVersion;
+        if (typeof min === 'number' && APP_VERSION < min) bloquerPourMAJ(min);
+      } catch(e) { /* config absente ou illisible : on laisse passer */ }
+    }
+    verifierVersion();
 
     // Écoute ligues
     onSnapshot(collection(db, 'ligues'), snap => {
