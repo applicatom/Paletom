@@ -6612,15 +6612,48 @@
       o.style.cssText = 'position:fixed;inset:0;z-index:99999;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;color:#fff;font-family:inherit';
       o.innerHTML =
         '<div style="font-size:48px;margin-bottom:14px">\u{1F504}</div>' +
-        '<div style="font-size:22px;font-weight:900;margin-bottom:22px">Mets \u00e0 jour l\'application</div>' +
+        '<div style="font-size:22px;font-weight:900;margin-bottom:8px">Mets \u00e0 jour l\'application</div>' +
+        '<div style="font-size:13px;line-height:1.5;color:#ffffffaa;max-width:320px;margin-bottom:20px">Une nouvelle version est en ligne.</div>' +
+        '<button onclick="rechargerApp()" style="width:100%;max-width:340px;background:var(--accent);color:#14532d;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:900;cursor:pointer;font-family:inherit;margin-bottom:20px">\u{1F504} Recharger l\'application</button>' +
         '<div style="background:#ffffff12;border-radius:14px;padding:16px;max-width:340px;text-align:left">' +
+          '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:#ffffff99;margin-bottom:14px;text-align:center">Si \u00e7a ne suffit pas</div>' +
           '<div style="display:flex;gap:10px;margin-bottom:12px"><div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#14532d;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div><div style="font-size:13px;line-height:1.5;color:#fff">Supprime l\'ic\u00f4ne <strong>Paletom</strong> de ton \u00e9cran d\'accueil</div></div>' +
           '<div style="display:flex;gap:10px;margin-bottom:12px"><div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#14532d;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div><div style="font-size:13px;line-height:1.5;color:#fff">Ouvre ce lien dans ton navigateur :<br/><span style="font-weight:800;word-break:break-all">applicatom.github.io/Paletom</span></div></div>' +
           '<div style="display:flex;gap:10px;margin-bottom:16px"><div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#14532d;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div><div style="font-size:13px;line-height:1.5;color:#fff">Menu <strong>Partager</strong> \u2192 <strong>\u00ab Sur l\'\u00e9cran d\'accueil \u00bb</strong> (ou <strong>\u00ab Installer l\'application \u00bb</strong>)</div></div>' +
-          '<button onclick="window.open(\'https://applicatom.github.io/Paletom\',\'_blank\')" style="width:100%;background:var(--accent);color:#14532d;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">Ouvrir le lien</button>' +
+          '<button id="btn-copie-maj" onclick="copierLienMAJ()" style="width:100%;background:#ffffff20;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">\u{1F4CB} Copier le lien</button>' +
         '</div>';
       document.body.appendChild(o);
     }
+
+    function rechargerApp() {
+      // Paramètre unique pour forcer le navigateur à récupérer le fichier à jour
+      const base = location.href.split('#')[0].split('?')[0];
+      location.replace(base + '?maj=' + Date.now());
+    }
+    window.rechargerApp = rechargerApp;
+
+    async function copierLienMAJ() {
+      const url = 'https://applicatom.github.io/Paletom';
+      const btn = document.getElementById('btn-copie-maj');
+      const ok = () => { if (btn) { btn.textContent = '\u2705 Lien copi\u00e9 ! Colle-le dans ton navigateur'; btn.style.background = '#fff'; } };
+      try {
+        await navigator.clipboard.writeText(url);
+        ok();
+      } catch(e) {
+        // Repli si l'API presse-papier est indisponible
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          ok();
+        } catch(e2) {
+          if (btn) btn.textContent = 'Copie impossible \u2014 note l\'adresse ci-dessus';
+        }
+      }
+    }
+    window.copierLienMAJ = copierLienMAJ;
 
     async function verifierNouvelleVersion() {
       try {
