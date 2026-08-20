@@ -1121,7 +1121,7 @@
             <input class="score-input" id="input-score-j2" type="number" min="0" placeholder="0" inputmode="numeric" oninput="onScoreInput()" />
           </div>
         </div>
-        <div class="score-info" id="score-info-max">Score max : 13 pts</div>
+        <div class="score-info" id="score-info-max-1v1">Score max : 13 pts</div>
         <div class="score-error" id="score-error"></div>
         <label style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer;border:1.5px solid var(--border)">
           <input type="checkbox" id="check-bourre" style="width:18px;height:18px;accent-color:#ef4444;cursor:pointer">
@@ -1199,7 +1199,7 @@
             <input class="score-input" id="input-score-eq2" type="number" min="0" placeholder="0" inputmode="numeric" oninput="onScoreInput2v2()" />
           </div>
         </div>
-        <div class="score-info" id="score-info-max">Score max : 13 pts</div>
+        <div class="score-info" id="score-info-max-2v2">Score max : 13 pts</div>
         <div class="score-error" id="score-2v2-error"></div>
         <label style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer;border:1.5px solid var(--border)">
           <input type="checkbox" id="check-bourre-2v2" style="width:18px;height:18px;accent-color:#ef4444;cursor:pointer">
@@ -1600,6 +1600,9 @@
   <div class="img-viewer-overlay" id="img-viewer" onclick="closeImgViewer()">
     <img id="img-viewer-img" src="" />
   </div>
+
+  <!-- TOAST (notification globale) -->
+  <div id="toast" class="toast"></div>
 
   <!-- PAGE MISE À JOUR -->
   <div class="page" id="page-update">
@@ -2179,7 +2182,7 @@
       document.getElementById('input-score-j2').value = '';
       document.getElementById('score-error').textContent = '';
       document.getElementById('btn-save-score').disabled = true;
-      const simax=document.getElementById('score-info-max');if(simax)simax.textContent=`Score max : ${window._maxPts||13} pts`;
+      const simax=document.getElementById('score-info-max-1v1');if(simax)simax.textContent=`Score max : ${window._maxPts||13} pts`;
       document.getElementById('step-joueurs').classList.remove('active');
       document.getElementById('step-score').classList.add('active');
       setTimeout(() => document.getElementById('input-score-j1').focus(), 200);
@@ -2276,7 +2279,7 @@
       document.getElementById('input-score-eq2').value='';
       document.getElementById('score-2v2-error').textContent='';
       document.getElementById('btn-save-score-2v2').disabled=true;
-      const si2v2=document.getElementById('score-info-max');if(si2v2)si2v2.textContent=`Score max : ${window._maxPts||13} pts`;
+      const si2v2=document.getElementById('score-info-max-2v2');if(si2v2)si2v2.textContent=`Score max : ${window._maxPts||13} pts`;
       document.getElementById('step-joueurs-2v2').classList.remove('active');
       document.getElementById('step-score-2v2').classList.add('active');
       setTimeout(()=>document.getElementById('input-score-eq1').focus(),200);
@@ -2443,8 +2446,8 @@
         const badge=getPepBadge(pepData.score);
         const initials=p.nom.substring(0,2).toUpperCase();
         const av=p.photo
-          ? `<img src="${p.photo}" style="width:42px;height:42px;border-radius:12px;object-fit:cover;flex-shrink:0;pointer-events:none"/>`
-          : `<div style="width:42px;height:42px;border-radius:12px;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--accent);flex-shrink:0">${initials}</div>`;
+          ? `<img src="${p.photo}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0;pointer-events:none"/>`
+          : `<div style="width:42px;height:42px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--accent);flex-shrink:0">${initials}</div>`;
         return `<div style="background:#fff;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);cursor:pointer;position:relative" onclick="openPlayerPage('${p.id}')">
           ${av}
           <div style="flex:1;min-width:0">
@@ -4191,6 +4194,44 @@
     }
     window.appliquerPEP = appliquerPEP;
 
+    // Recalcule tout l'historique PEP à partir de zéro (utilisé après modif/suppression d'une partie).
+    // On rejoue tous les matchs en mémoire dans l'ordre chronologique, puis on écrit une seule fois
+    // par joueur — le nombre de matchs n'a donc quasiment aucun impact sur la vitesse.
+    const PEP_FIELD_BY_FORMAT = { '1v1':'pepScore_1v1', '1v1v1':'pepScore_1v1v1', '2v2':'pepScore_2v2', '3v3':'pepScore_3v3' };
+
+    async function recalculerPEP(matches) {
+      const players = window._players || [];
+      const triés = [...(matches||[])].sort((a,b) => (a.date||0) - (b.date||0));
+
+      const state = {};
+      players.forEach(p => {
+        state[p.id] = { pepScore_1v1:1000, pepScore_1v1v1:1000, pepScore_2v2:1000, pepScore_3v3:1000, pepScore_general:1000 };
+      });
+
+      for (const m of triés) {
+        const field = PEP_FIELD_BY_FORMAT[m.format];
+        if (!field) continue;
+        const idsInMatch = m.format==='1v1' ? [m.joueur1Id, m.joueur2Id]
+          : m.format==='1v1v1' ? (m.joueurs||[])
+          : [...(m.equipe1||[]), ...(m.equipe2||[])];
+        const playersSnapshot = idsInMatch.filter(id => state[id]).map(id => ({ id, ...state[id] }));
+
+        let deltas;
+        if (m.format === '1v1') deltas = calculerPEP_1v1(m, playersSnapshot);
+        else if (m.format === '1v1v1') deltas = calculerPEP_1v1v1(m, playersSnapshot);
+        else deltas = calculerPEP_equipe(m, playersSnapshot);
+
+        for (const [id, delta] of Object.entries(deltas||{})) {
+          if (!state[id]) continue; // invité ou joueur supprimé depuis
+          state[id][field] = Math.max(0, Math.min(2000, state[id][field] + delta));
+          state[id].pepScore_general = Math.max(0, Math.min(2000, state[id].pepScore_general + delta));
+        }
+      }
+
+      await Promise.all(players.map(p => window._updateDoc(window._docJoueur(p.id), state[p.id])));
+    }
+    window.recalculerPEP = recalculerPEP;
+
     window.renderPlayers = renderPlayers;
     window.renderRanking = renderRanking;
     window.refreshPlayerSelects = refreshPlayerSelects;
@@ -4480,58 +4521,11 @@
     window.renameLigue = renameLigue;
 
     // ── GESTION LIGUE SETTINGS ────────────────────────
-    async function saveLigueSettings() {
-      const ligueId = window._currentLigueId;
-      if (!ligueId) return;
-      const nom = document.getElementById('settings-ligue-nom')?.value.trim();
-      if (!nom) { showToast('Entre un nom !'); return; }
-      try {
-        const updates = { nom };
-        // Photo si changée
-        if (window._pendingLiguePhoto) updates.photo = window._pendingLiguePhoto;
-        await window._updateDoc(window._docLigue(ligueId), updates);
-        window._currentLigueNom = nom;
-        localStorage.setItem('paletom_ligue_nom', nom);
-        const el = document.getElementById('ligue-nom-display');
-        if (el) el.textContent = nom;
-        window._pendingLiguePhoto = null;
-        showToast('✅ Ligue mise à jour !');
-      } catch(e) { showToast('Erreur : ' + e.message); }
-    }
-    window.saveLigueSettings = saveLigueSettings;
-
-    function onLiguePhotoChange(input) {
-      const file = input.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = e => {
-        window._pendingLiguePhoto = e.target.result;
-        const av = document.getElementById('settings-ligue-avatar');
-        if (av) av.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover"/>`;
-      };
-      reader.readAsDataURL(file);
-    }
-    window.onLiguePhotoChange = onLiguePhotoChange;
-
     function loadSettingsLigue() {
       const ligueId = window._currentLigueId;
-      const nom = localStorage.getItem('paletom_ligue_nom') || '';
-      const inp = document.getElementById('settings-ligue-nom');
-      if (inp) inp.value = nom;
-      const el2 = document.getElementById('ligue-nom-settings');
-      if (el2) el2.textContent = nom || '—';
-      // Photo
       const ligue = (window._ligues||[]).find(l => l.id === ligueId);
       const codeEl = document.getElementById('settings-ligue-code');
       if (codeEl) codeEl.textContent = ligue?.code || '⚠️ aucun code';
-      const av = document.getElementById('settings-ligue-avatar');
-      if (av) {
-        if (ligue?.photo) {
-          av.innerHTML = `<img src="${ligue.photo}" style="width:100%;height:100%;object-fit:cover"/>`;
-        } else {
-          av.textContent = nom.substring(0,2).toUpperCase() || '🏟️';
-        }
-      }
     }
     window.loadSettingsLigue = loadSettingsLigue;
 
@@ -6491,59 +6485,86 @@
     window.saveMatch1v1v1=saveMatch1v1v1;
 
     // MODIFIER / SUPPRIMER MATCH
+    function editScoreInputHtml(id, label, value, maxPts) {
+      return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><div style="flex:1;font-size:14px;font-weight:800;color:var(--text)">${label}</div><input id="${id}" type="number" min="0" max="${maxPts}" value="${value}" inputmode="numeric" style="width:64px;height:44px;border:2px solid var(--border);border-radius:10px;text-align:center;font-size:22px;font-weight:900;font-family:inherit;outline:none;color:var(--text)"/></div>`;
+    }
+
     function openEditMatch(matchId) {
       const m=(window._matches||[]).find(x=>x.id===matchId);
       if(!m) return;
       window._editingMatchId=matchId;
-      let titre='Partie';
-      if(m.format==='1v1'){const j1=window._players.find(p=>p.id===m.joueur1Id);const j2=window._players.find(p=>p.id===m.joueur2Id);titre=(j1?j1.nom:'?')+' vs '+(j2?j2.nom:'?');}
-      else if(m.format==='2v2') titre='2v2';
-      else if(m.format==='1v1v1') titre='1v1v1';
+      const maxPts = m.maxPts || 13;
+      let titre='Partie', body='';
+      if (m.format==='1v1') {
+        const n1=resolvePlayerName(m.joueur1Id,m), n2=resolvePlayerName(m.joueur2Id,m);
+        titre = n1+' vs '+n2;
+        body = editScoreInputHtml('edit-score-j1', n1, m.score1, maxPts) + editScoreInputHtml('edit-score-j2', n2, m.score2, maxPts);
+      } else if (m.format==='1v1v1') {
+        titre = '1 vs 1 vs 1';
+        const noms = (m.joueurs||[]).map(id=>resolvePlayerName(id,m));
+        const ids = ['edit-score-t1','edit-score-t2','edit-score-t3'];
+        body = noms.map((n,i)=>editScoreInputHtml(ids[i], n, (m.scores||[])[i]??0, maxPts)).join('');
+      } else {
+        titre = m.format==='3v3' ? '3 vs 3' : '2 vs 2';
+        const n1=(m.equipe1||[]).map(id=>resolvePlayerName(id,m)).join(' & ');
+        const n2=(m.equipe2||[]).map(id=>resolvePlayerName(id,m)).join(' & ');
+        body = editScoreInputHtml('edit-score-eq1', n1, m.score1, maxPts) + editScoreInputHtml('edit-score-eq2', n2, m.score2, maxPts);
+      }
       document.getElementById('edit-match-title').textContent=titre;
-      document.getElementById('edit-match-body').innerHTML='<p style="text-align:center;padding:12px;color:var(--text2);font-size:13px;line-height:1.6">Pour toute correction de score,<br/>contacte l\'admin.</p><button class="btn-cancel" onclick="closeModal(\'modal-edit-match\')">Fermer</button>';
+      document.getElementById('edit-match-body').innerHTML = body
+        + '<div class="score-error" id="edit-score-error"></div>'
+        + '<button class="btn-primary" id="btn-save-edit-match" onclick="saveEditMatch()">💾 Enregistrer</button>'
+        + '<button class="btn-danger" onclick="confirmDeleteMatch()">🗑 Supprimer la partie</button>'
+        + '<button class="btn-cancel" onclick="closeModal(\'modal-edit-match\')">Annuler</button>';
       document.getElementById('modal-edit-match').classList.add('open');
     }
-    window.openEditMatch=openEditMatch;;
+    window.openEditMatch=openEditMatch;
 
     async function saveEditMatch() {
       const m=(window._matches||[]).find(m=>m.id===window._editingMatchId);
       if(!m)return;
       const err=document.getElementById('edit-score-error');
-      let s1,s2,gagnantId,gagnantEquipe;
-      if(m.format==='1v1'){
-        s1=parseInt(document.getElementById('edit-score-j1').value);
-        s2=parseInt(document.getElementById('edit-score-j2').value);
-        const maxEdit=window._editingMatch?.maxPts||13;if(isNaN(s1)||isNaN(s2)||s1>maxEdit||s2>maxEdit){err.textContent='Scores invalides !';return;}
-        if(s1===s2){err.textContent="Pas d'égalité !";return;}
-        if(s1!==13&&s2!==13){err.textContent='Un joueur doit avoir 13 pts.';return;}
-        gagnantId=s1>s2?m.joueur1Id:m.joueur2Id;
-      } else {
-        s1=parseInt(document.getElementById('edit-score-eq1').value);
-        s2=parseInt(document.getElementById('edit-score-eq2').value);
-        const maxEdit=window._editingMatch?.maxPts||13;if(isNaN(s1)||isNaN(s2)||s1>maxEdit||s2>maxEdit){err.textContent='Scores invalides !';return;}
-        if(s1===s2){err.textContent="Pas d'égalité !";return;}
-        if(s1!==13&&s2!==13){err.textContent='Une équipe doit avoir 13 pts.';return;}
-        gagnantEquipe=s1>s2?1:2;
-      }
+      const maxEdit = m.maxPts || 13;
+      let updates = {};
+      if (m.format==='1v1' || m.format==='2v2' || m.format==='3v3') {
+        const isEquipe = m.format!=='1v1';
+        const s1=parseInt(document.getElementById(isEquipe?'edit-score-eq1':'edit-score-j1').value);
+        const s2=parseInt(document.getElementById(isEquipe?'edit-score-eq2':'edit-score-j2').value);
+        if(isNaN(s1)||isNaN(s2)||s1<0||s2<0||s1>maxEdit||s2>maxEdit){err.textContent=`Score max : ${maxEdit} !`;return;}
+        if(s1===s2){err.textContent="Pas d'égalité possible !";return;}
+        if(s1!==maxEdit&&s2!==maxEdit){err.textContent=`${isEquipe?'Une équipe':'Un joueur'} doit avoir ${maxEdit} pts.`;return;}
+        updates = { score1:s1, score2:s2 };
+        if (isEquipe) updates.gagnantEquipe = s1>s2?1:2;
+        else updates.gagnantId = s1>s2?m.joueur1Id:m.joueur2Id;
+      } else if (m.format==='1v1v1') {
+        const scores=['edit-score-t1','edit-score-t2','edit-score-t3'].map(id=>parseInt(document.getElementById(id).value));
+        if(scores.some(isNaN)||scores.some(s=>s<0)||scores.some(s=>s>maxEdit)){err.textContent=`Score max : ${maxEdit} !`;return;}
+        const max=Math.max(...scores);
+        if(scores.filter(s=>s===max).length>1){err.textContent='Deux joueurs ne peuvent pas avoir le même score !';return;}
+        updates = { scores, gagnantId: (m.joueurs||[])[scores.indexOf(max)] };
+      } else return;
       try{
-        const updates={score1:s1,score2:s2};
-        if(gagnantId)updates.gagnantId=gagnantId;
-        if(gagnantEquipe)updates.gagnantEquipe=gagnantEquipe;
+        err.textContent = 'Recalcul du classement...';
         await window._updateDoc(window._docPartie(window._editingMatchId), updates);
+        const matchApresModif = { ...m, ...updates };
+        const matchesPourRecalc = (window._matches||[]).map(x => x.id===m.id ? matchApresModif : x);
+        await recalculerPEP(matchesPourRecalc);
         closeModal('modal-edit-match');
-        showToast('✅ Partie modifiée !');
+        showToast('✅ Partie modifiée, classement recalculé !');
       }catch(e){err.textContent='Erreur : '+e.message;}
     }
     window.saveEditMatch=saveEditMatch;
 
     function confirmDeleteMatch() {
-      if(confirm('Supprimer définitivement cette partie ?')){deleteMatch();}
+      if(confirm('Supprimer définitivement cette partie ? Le classement PEP sera recalculé.')){deleteMatch();}
     }
     async function deleteMatch() {
       try{
+        const matchesApresSuppr = (window._matches||[]).filter(x => x.id !== window._editingMatchId);
         await window._deleteDoc(window._docPartie(window._editingMatchId));
+        await recalculerPEP(matchesApresSuppr);
         closeModal('modal-edit-match');
-        showToast('🗑 Partie supprimée');
+        showToast('🗑 Partie supprimée, classement recalculé');
       }catch(e){showToast('Erreur : '+e.message);}
     }
     window.confirmDeleteMatch=confirmDeleteMatch;
@@ -6762,3 +6783,4 @@
     <iframe id="iframe-pdf-pep" src="" style="flex:1;border:none;width:100%;height:100%"></iframe>
   </div>
 </body>
+</html>
