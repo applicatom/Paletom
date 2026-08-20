@@ -4,7 +4,7 @@
     {
       "name": "paletom-static",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8787"],
+      "runtimeArgs": ["-m", "http.server", "8787", "--directory", "/Users/thomasmoreau/Desktop/Paletom"],
       "port": 8787
     }
   ]

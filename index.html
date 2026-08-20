@@ -54,12 +54,23 @@
     /* CUSTOM DROPDOWN */
     .custom-select { position:relative; }
     .custom-select-btn {
-      width:100%; padding:10px 14px; border:1px solid var(--border2);
+      width:100%; padding:8px 14px; border:1px solid var(--border2);
       border-radius:var(--radius-sm); background:#fff; color:var(--text);
       font-size:14px; font-weight:700; cursor:pointer;
-      display:flex; align-items:center; justify-content:space-between;
+      display:flex; align-items:center; gap:10px;
     }
+    .custom-select-btn [id$="-label"] { flex:1; text-align:left; }
     .custom-select-btn .cs-arrow { font-size:12px; color:var(--text2); transition:transform 0.2s; }
+    .cs-avatar {
+      width:28px; height:28px; border-radius:50%; flex-shrink:0;
+      background:var(--navy); color:var(--accent); display:none;
+      align-items:center; justify-content:center; font-size:11px; font-weight:800;
+      overflow:hidden;
+    }
+    .cs-avatar.show { display:flex; }
+    .cs-avatar img { width:100%; height:100%; object-fit:cover; }
+    .cs-option-av { display:flex; align-items:center; gap:10px; }
+    .cs-option-av .cs-avatar { display:flex; }
     .custom-select-btn.open .cs-arrow { transform:rotate(180deg); }
     .custom-select-dropdown {
       display:none; position:absolute; top:calc(100% + 4px); left:0; right:0;
@@ -755,7 +766,7 @@
         ← Retour
       </div>
       <div style="display:flex;align-items:center;gap:14px">
-        <div id="pp-avatar" style="width:60px;height:60px;border-radius:16px;background:#ffffff15;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:var(--accent);flex-shrink:0;overflow:hidden"></div>
+        <div id="pp-avatar" style="width:60px;height:60px;border-radius:50%;background:#ffffff15;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:var(--accent);flex-shrink:0;overflow:hidden"></div>
         <div style="flex:1;min-width:0">
           <div style="font-size:26px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1" id="pp-name">Joueur</div>
           <div style="font-size:12px;color:#ffffff70;margin-top:4px;font-weight:600" id="pp-sub"></div>
@@ -1087,7 +1098,7 @@
           <input type="hidden" id="select-j1"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-j1-btn" onclick="toggleCS('select-j1')">
-              <span id="select-j1-label">— Joueur 1 —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-j1-avatar"></span><span id="select-j1-label">— Joueur 1 —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-j1-dropdown"></div>
           </div>
@@ -1097,7 +1108,7 @@
           <input type="hidden" id="select-j2"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-j2-btn" onclick="toggleCS('select-j2')">
-              <span id="select-j2-label">— Joueur 2 —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-j2-avatar"></span><span id="select-j2-label">— Joueur 2 —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-j2-dropdown"></div>
           </div>
@@ -1138,7 +1149,7 @@
           <input type="hidden" id="select-2v2-j1"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-2v2-j1-btn" onclick="toggleCS('select-2v2-j1')">
-              <span id="select-2v2-j1-label">— Joueur A —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-2v2-j1-avatar"></span><span id="select-2v2-j1-label">— Joueur A —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-2v2-j1-dropdown"></div>
           </div>
@@ -1148,7 +1159,7 @@
           <input type="hidden" id="select-2v2-j2"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-2v2-j2-btn" onclick="toggleCS('select-2v2-j2')">
-              <span id="select-2v2-j2-label">— Joueur B —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-2v2-j2-avatar"></span><span id="select-2v2-j2-label">— Joueur B —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-2v2-j2-dropdown"></div>
           </div>
@@ -1159,7 +1170,7 @@
           <input type="hidden" id="select-2v2-j3"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-2v2-j3-btn" onclick="toggleCS('select-2v2-j3')">
-              <span id="select-2v2-j3-label">— Joueur C —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-2v2-j3-avatar"></span><span id="select-2v2-j3-label">— Joueur C —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-2v2-j3-dropdown"></div>
           </div>
@@ -1169,7 +1180,7 @@
           <input type="hidden" id="select-2v2-j4"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-2v2-j4-btn" onclick="toggleCS('select-2v2-j4')">
-              <span id="select-2v2-j4-label">— Joueur D —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-2v2-j4-avatar"></span><span id="select-2v2-j4-label">— Joueur D —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-2v2-j4-dropdown"></div>
           </div>
@@ -1216,7 +1227,7 @@
           <input type="hidden" id="select-1v1v1-j1"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-1v1v1-j1-btn" onclick="toggleCS('select-1v1v1-j1')">
-              <span id="select-1v1v1-j1-label">— Joueur 1 —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-1v1v1-j1-avatar"></span><span id="select-1v1v1-j1-label">— Joueur 1 —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-1v1v1-j1-dropdown"></div>
           </div>
@@ -1226,7 +1237,7 @@
           <input type="hidden" id="select-1v1v1-j2"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-1v1v1-j2-btn" onclick="toggleCS('select-1v1v1-j2')">
-              <span id="select-1v1v1-j2-label">— Joueur 2 —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-1v1v1-j2-avatar"></span><span id="select-1v1v1-j2-label">— Joueur 2 —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-1v1v1-j2-dropdown"></div>
           </div>
@@ -1236,7 +1247,7 @@
           <input type="hidden" id="select-1v1v1-j3"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-1v1v1-j3-btn" onclick="toggleCS('select-1v1v1-j3')">
-              <span id="select-1v1v1-j3-label">— Joueur 3 —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-1v1v1-j3-avatar"></span><span id="select-1v1v1-j3-label">— Joueur 3 —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-1v1v1-j3-dropdown"></div>
           </div>
@@ -1281,7 +1292,7 @@
           <input type="hidden" id="select-3v3-j1"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-3v3-j1-btn" onclick="toggleCS('select-3v3-j1')">
-              <span id="select-3v3-j1-label">— Joueur A —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-3v3-j1-avatar"></span><span id="select-3v3-j1-label">— Joueur A —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-3v3-j1-dropdown"></div>
           </div>
@@ -1291,7 +1302,7 @@
           <input type="hidden" id="select-3v3-j2"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-3v3-j2-btn" onclick="toggleCS('select-3v3-j2')">
-              <span id="select-3v3-j2-label">— Joueur B —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-3v3-j2-avatar"></span><span id="select-3v3-j2-label">— Joueur B —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-3v3-j2-dropdown"></div>
           </div>
@@ -1301,7 +1312,7 @@
           <input type="hidden" id="select-3v3-j3"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-3v3-j3-btn" onclick="toggleCS('select-3v3-j3')">
-              <span id="select-3v3-j3-label">— Joueur C —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-3v3-j3-avatar"></span><span id="select-3v3-j3-label">— Joueur C —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-3v3-j3-dropdown"></div>
           </div>
@@ -1312,7 +1323,7 @@
           <input type="hidden" id="select-3v3-j4"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-3v3-j4-btn" onclick="toggleCS('select-3v3-j4')">
-              <span id="select-3v3-j4-label">— Joueur D —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-3v3-j4-avatar"></span><span id="select-3v3-j4-label">— Joueur D —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-3v3-j4-dropdown"></div>
           </div>
@@ -1322,7 +1333,7 @@
           <input type="hidden" id="select-3v3-j5"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-3v3-j5-btn" onclick="toggleCS('select-3v3-j5')">
-              <span id="select-3v3-j5-label">— Joueur E —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-3v3-j5-avatar"></span><span id="select-3v3-j5-label">— Joueur E —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-3v3-j5-dropdown"></div>
           </div>
@@ -1332,7 +1343,7 @@
           <input type="hidden" id="select-3v3-j6"/>
           <div class="custom-select">
             <button class="custom-select-btn" id="select-3v3-j6-btn" onclick="toggleCS('select-3v3-j6')">
-              <span id="select-3v3-j6-label">— Joueur F —</span><span class="cs-arrow">▾</span>
+              <span class="cs-avatar" id="select-3v3-j6-avatar"></span><span id="select-3v3-j6-label">— Joueur F —</span><span class="cs-arrow">▾</span>
             </button>
             <div class="custom-select-dropdown" id="select-3v3-j6-dropdown"></div>
           </div>
@@ -2008,10 +2019,12 @@
         document.getElementById('saisie-sub').textContent = `3 vs 3 · ${subLabel}${finale} · ${maxPts} pts`;
         ['select-3v3-j1','select-3v3-j2','select-3v3-j3','select-3v3-j4','select-3v3-j5','select-3v3-j6'].forEach(id => {
           const el = document.getElementById(id); if(el) el.value = '';
+          clearCsAvatar(id);
         });
         const err = document.getElementById('joueurs-3v3-error'); if(err) err.textContent = '';
         const btn = document.getElementById('btn-next-joueurs-3v3'); if(btn) btn.disabled = true;
         const step = document.getElementById('step-joueurs-3v3'); if(step) step.classList.add('active');
+        restoreLastSelection('3v3', ['select-3v3-j1','select-3v3-j2','select-3v3-j3','select-3v3-j4','select-3v3-j5','select-3v3-j6']);
       } else if (format === '2v2') {
         if (window._players.length < 2) { showToast('⚠️ Ajoute au moins 2 joueurs !'); return; }
         document.getElementById('saisie-sub').textContent = `2 vs 2 · ${subLabel}${finale} · ${maxPts} pts`;
@@ -2019,24 +2032,28 @@
           document.getElementById(id).value = '';
           const lbl = document.getElementById(id+'-label');
           if(lbl) lbl.textContent = lbl.textContent.split('—')[1]?.trim() || lbl.textContent;
+          clearCsAvatar(id);
         });
         document.getElementById('joueurs-2v2-error').textContent = '';
         document.getElementById('btn-next-joueurs-2v2').disabled = true;
         document.getElementById('step-joueurs-2v2').classList.add('active');
+        restoreLastSelection('2v2', ['select-2v2-j1','select-2v2-j2','select-2v2-j3','select-2v2-j4']);
       } else if (format === '1v1v1') {
         if (window._players.length < 3) { showToast('⚠️ Ajoute au moins 3 joueurs !'); return; }
         document.getElementById('saisie-sub').textContent = `1 vs 1 vs 1${finale} · ${maxPts} pts`;
-        ['select-1v1v1-j1','select-1v1v1-j2','select-1v1v1-j3'].forEach(id => document.getElementById(id).value = '');
+        ['select-1v1v1-j1','select-1v1v1-j2','select-1v1v1-j3'].forEach(id => { document.getElementById(id).value = ''; clearCsAvatar(id); });
         document.getElementById('joueurs-1v1v1-error').textContent = '';
         document.getElementById('btn-next-joueurs-1v1v1').disabled = true;
         document.getElementById('step-joueurs-1v1v1').classList.add('active');
+        restoreLastSelection('1v1v1', ['select-1v1v1-j1','select-1v1v1-j2','select-1v1v1-j3']);
       } else {
         document.getElementById('saisie-sub').textContent = `1 vs 1${finale} · ${maxPts} pts`;
-        document.getElementById('select-j1').value='';document.getElementById('select-j1-label').textContent='— Joueur 1 —';
-        document.getElementById('select-j2').value='';document.getElementById('select-j2-label').textContent='— Joueur 2 —';
+        document.getElementById('select-j1').value='';document.getElementById('select-j1-label').textContent='— Joueur 1 —';clearCsAvatar('select-j1');
+        document.getElementById('select-j2').value='';document.getElementById('select-j2-label').textContent='— Joueur 2 —';clearCsAvatar('select-j2');
         document.getElementById('joueurs-error').textContent = '';
         document.getElementById('btn-next-joueurs').disabled = true;
         document.getElementById('step-joueurs').classList.add('active');
+        restoreLastSelection('1v1', ['select-j1','select-j2']);
       }
       showPage('page-saisie');
     }
@@ -2101,8 +2118,9 @@
         dd.innerHTML = '';
         players.forEach(p => {
           const div = document.createElement('div');
-          div.className = 'cs-option' + (p.id===curVal?' selected':'');
-          div.textContent = p.nom;
+          div.className = 'cs-option cs-option-av' + (p.id===curVal?' selected':'');
+          div.dataset.pid = p.id;
+          div.innerHTML = `<span class="cs-avatar show">${csAvatarInner(p)}</span><span>${p.nom}</span>`;
           const handler = (e) => {
             e.preventDefault(); e.stopPropagation();
             pickSaisiePlayer(id, p.id, p.nom);
@@ -2111,9 +2129,16 @@
           div.addEventListener('touchstart', handler, {passive:false});
           dd.appendChild(div);
         });
+        const curPlayer = players.find(p=>p.id===curVal);
+        const avEl = document.getElementById(id+'-avatar');
+        if (avEl) {
+          if (curPlayer) { avEl.innerHTML = csAvatarInner(curPlayer); avEl.classList.add('show'); }
+          else if (curVal && window._guestNames?.[curVal]) { avEl.innerHTML = '👤'; avEl.classList.add('show'); }
+          else { avEl.innerHTML=''; avEl.classList.remove('show'); }
+        }
         const guestDiv = document.createElement('div');
-        guestDiv.className = 'cs-option';
-        guestDiv.textContent = '+ Invité';
+        guestDiv.className = 'cs-option cs-option-av';
+        guestDiv.innerHTML = `<span class="cs-avatar show">👤</span><span>+ Invité</span>`;
         guestDiv.style.cssText = 'border-top:1px solid rgba(0,0,0,0.1);color:var(--text2);font-style:italic';
         const guestHandler = (e) => {
           e.preventDefault(); e.stopPropagation();
@@ -2126,13 +2151,44 @@
     }
 
 
+    // Mémorise/restaure les joueurs sélectionnés pour éviter de tout resélectionner
+    // à chaque nouvelle partie (utile quand on enchaîne plusieurs manches).
+    function rememberSaisieSelection(format, ids) {
+      window._lastSelection = window._lastSelection || {};
+      window._lastSelection[format] = ids;
+    }
+    function restoreLastSelection(format, inputIds) {
+      const last = window._lastSelection?.[format];
+      if (!last || last.length !== inputIds.length) return;
+      if (new Set(last).size !== last.length) return;
+      const names = last.map(id => window._players.find(p=>p.id===id)?.nom);
+      if (names.some(n => !n)) return; // joueur invité ou supprimé depuis
+      inputIds.forEach((inputId, i) => pickSaisiePlayer(inputId, last[i], names[i]));
+    }
+
+    // Contenu (photo ou initiales) pour les petits avatars ronds des sélecteurs de joueurs.
+    function csAvatarInner(player) {
+      if (player?.photo) return `<img src="${player.photo}"/>`;
+      return player?.nom ? player.nom.substring(0,2).toUpperCase() : '';
+    }
+    function clearCsAvatar(id) {
+      const av = document.getElementById(id+'-avatar');
+      if (av) { av.innerHTML=''; av.classList.remove('show'); }
+    }
+
     function pickSaisiePlayer(inputId, val, label) {
       const inp = document.getElementById(inputId);
       if (inp) inp.value = val;
       const lbl = document.getElementById(inputId+'-label');
       if (lbl) lbl.textContent = label;
+      const av = document.getElementById(inputId+'-avatar');
+      if (av) {
+        const p = (window._players||[]).find(pl=>pl.id===val);
+        av.innerHTML = p ? csAvatarInner(p) : '👤';
+        av.classList.add('show');
+      }
       const dd = document.getElementById(inputId+'-dropdown');
-      if (dd) dd.querySelectorAll('.cs-option').forEach(o => o.classList.toggle('selected', o.textContent.trim()===label.trim()));
+      if (dd) dd.querySelectorAll('.cs-option').forEach(o => o.classList.toggle('selected', o.dataset.pid===val));
       const btn = document.getElementById(inputId+'-btn');
       if (dd) dd.classList.remove('open');
       if (btn) btn.classList.remove('open');
@@ -2152,6 +2208,8 @@
       if (inp) inp.value = guestId;
       const lbl = document.getElementById(inputId+'-label');
       if (lbl) lbl.textContent = name.trim() + ' (invité)';
+      const av = document.getElementById(inputId+'-avatar');
+      if (av) { av.innerHTML = '👤'; av.classList.add('show'); }
       if (!window._guestNames) window._guestNames = {};
       window._guestNames[guestId] = name.trim();
       if (inputId.startsWith('select-j')) checkJoueurs();
@@ -2213,6 +2271,7 @@
     async function saveMatch() {
       const j1id=document.getElementById('select-j1').value;
       const j2id=document.getElementById('select-j2').value;
+      rememberSaisieSelection('1v1', [j1id, j2id]);
       const s1=parseInt(document.getElementById('input-score-j1').value);
       const s2=parseInt(document.getElementById('input-score-j2').value);
       document.getElementById('btn-save-score').disabled=true;
@@ -2308,6 +2367,7 @@
 
     async function saveMatch2v2() {
       const [j1id,j2id,j3id,j4id]=['select-2v2-j1','select-2v2-j2','select-2v2-j3','select-2v2-j4'].map(id=>document.getElementById(id).value);
+      rememberSaisieSelection('2v2', [j1id,j2id,j3id,j4id]);
       const s1=parseInt(document.getElementById('input-score-eq1').value);
       const s2=parseInt(document.getElementById('input-score-eq2').value);
       document.getElementById('btn-save-score-2v2').disabled=true;
@@ -2488,9 +2548,27 @@
       document.getElementById('pp-name').textContent = p.nom;
       const pepGen = calcPepGeneral(p);
       const pepBadge = getPepBadge(pepGen.score);
-            const nextLevel = pepGen.score < 850 ? {name:'Rookie',pts:850} : pepGen.score < 950 ? {name:'Confirmé',pts:950} : pepGen.score < 1050 ? {name:'All-Star',pts:1050} : pepGen.score < 1150 ? {name:'Legend',pts:1150} : null;
+      const tierFloors = [0,850,950,1050,1150];
+      const tierCeils  = [850,950,1050,1150,2000];
+      const tierNames  = ['Rookie','Confirmé','All-Star','Legend',null];
+      const tierIdx = pepGen.score < 850 ? 0 : pepGen.score < 950 ? 1 : pepGen.score < 1050 ? 2 : pepGen.score < 1150 ? 3 : 4;
+      const nextLevel = tierNames[tierIdx] ? {name:tierNames[tierIdx], pts:tierCeils[tierIdx]} : null;
       const ptsLeft = nextLevel ? nextLevel.pts - pepGen.score : 0;
-      document.getElementById('pp-sub').innerHTML = `<span style="font-size:11px;font-weight:800;color:${pepBadge.color};background:${pepBadge.bg};border-radius:20px;padding:3px 10px">${pepBadge.label}</span> <span style="color:#ffffff70;margin-left:6px">${pepGen.score} pts</span>${nextLevel ? `<span style="color:#ffffff50;margin-left:6px;font-size:11px">Road to ${nextLevel.name} : ${ptsLeft} pts</span>` : '<span style="color:#4ade80;margin-left:6px;font-size:11px">· Niveau max 👑</span>'}`;
+      const tierPct = tierIdx===4 ? 100 : Math.max(3, Math.min(100, (pepGen.score-tierFloors[tierIdx])/(tierCeils[tierIdx]-tierFloors[tierIdx])*100));
+      document.getElementById('pp-sub').innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;font-weight:800;color:${pepBadge.color};background:${pepBadge.bg};border-radius:20px;padding:3px 10px;white-space:nowrap">${pepBadge.label}</span>
+          <span style="color:#fff;font-weight:800;font-size:14px">${pepGen.score} pts</span>
+        </div>
+        <div style="margin-top:9px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#ffffff70;font-weight:700;margin-bottom:5px">
+            <span>${nextLevel ? 'Road to ' + nextLevel.name : '👑 Niveau max'}</span>
+            <span>${nextLevel ? ptsLeft + ' pts' : ''}</span>
+          </div>
+          <div style="height:5px;background:#ffffff20;border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${tierPct}%;background:var(--accent);border-radius:3px"></div>
+          </div>
+        </div>`;
 
       // Contenu
       const diffStr = d => d>0?'+'+d:d.toString();
@@ -2503,7 +2581,7 @@
           if ((window._ppFormatVal||'all') !== 'all' && m.format !== (window._ppFormatVal||'all')) return false;
           if (m.format==='1v1') return m.joueur1Id===playerId||m.joueur2Id===playerId;
           if (m.format==='1v1v1') return (m.joueurs||[]).includes(playerId);
-          if (m.format==='2v2') return [...(m.equipe1||[]),...(m.equipe2||[])].includes(playerId);
+          if (m.format==='2v2' || m.format==='3v3') return [...(m.equipe1||[]),...(m.equipe2||[])].includes(playerId);
           return false;
         }).sort((a,b)=>(b.date||0)-(a.date||0));
         document.getElementById('pp-matches').innerHTML = allM.length
@@ -6369,6 +6447,7 @@
 
     async function saveMatch3v3() {
       const ids=['select-3v3-j1','select-3v3-j2','select-3v3-j3','select-3v3-j4','select-3v3-j5','select-3v3-j6'].map(id=>document.getElementById(id).value);
+      rememberSaisieSelection('3v3', ids);
       const [j1,j2,j3,j4,j5,j6]=ids;
       const s1=parseInt(document.getElementById('input-score-3v3-eq1').value);
       const s2=parseInt(document.getElementById('input-score-3v3-eq2').value);
@@ -6453,6 +6532,7 @@
 
     async function saveMatch1v1v1() {
       const ids=['select-1v1v1-j1','select-1v1v1-j2','select-1v1v1-j3'].map(id=>document.getElementById(id).value);
+      rememberSaisieSelection('1v1v1', ids);
       const scores=['input-score-1v1v1-j1','input-score-1v1v1-j2','input-score-1v1v1-j3'].map(id=>parseInt(document.getElementById(id).value));
       const maxScore=Math.max(...scores);
       const gagnantId=ids[scores.indexOf(maxScore)];
