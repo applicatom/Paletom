@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#1e2d40" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -423,7 +423,7 @@
     .input-field {
       width:100%; background:var(--bg3); border:1.5px solid var(--border2);
       border-radius:var(--radius-sm); padding:10px 12px; position:relative;
-      font-size:15px; color:var(--text); outline:none; transition:border-color 0.2s;
+      font-size:16px; color:var(--text); outline:none; transition:border-color 0.2s;
     }
     .input-field:focus { border-color:var(--navy); }
     select.input-field { appearance:none; -webkit-appearance:none; cursor:pointer; }
@@ -618,7 +618,7 @@
       <div style="background:#fff;border-radius:14px;padding:14px;box-shadow:var(--shadow);margin-bottom:20px">
         <div style="display:flex;gap:8px">
           <input id="ligue-code-input" type="text" placeholder="Code (ex : PALET-4F7K)" autocapitalize="characters"
-            style="flex:1;background:var(--bg);border:1.5px solid var(--border2);border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600;color:var(--text);outline:none;font-family:inherit"/>
+            style="flex:1;background:var(--bg);border:1.5px solid var(--border2);border-radius:10px;padding:10px 12px;font-size:16px;font-weight:600;color:var(--text);outline:none;font-family:inherit"/>
           <button onclick="rejoindreParCode()"
             style="background:var(--navy);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">
             OK
@@ -633,7 +633,7 @@
       <div style="background:#fff;border-radius:14px;padding:14px;box-shadow:var(--shadow)">
         <div style="display:flex;gap:8px">
           <input id="ligue-name-input" type="text" placeholder="Nom de la ligue…"
-            style="flex:1;background:var(--bg);border:1.5px solid var(--border2);border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600;color:var(--text);outline:none;font-family:inherit"/>
+            style="flex:1;background:var(--bg);border:1.5px solid var(--border2);border-radius:10px;padding:10px 12px;font-size:16px;font-weight:600;color:var(--text);outline:none;font-family:inherit"/>
           <button onclick="creerLigue()"
             style="background:var(--accent);color:#14532d;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 3px 0 var(--accent-btn)">
             Créer
@@ -1708,7 +1708,7 @@
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:16px;box-shadow:var(--shadow)">
       <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#111">Proposer une idée</div>
       <div style="display:flex;gap:8px;align-items:flex-start">
-        <textarea id="idea-input" placeholder="Décris ton idée…" style="flex:1;background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;font-size:14px;color:var(--text);outline:none;resize:none;height:72px;font-family:inherit"></textarea>
+        <textarea id="idea-input" placeholder="Décris ton idée…" style="flex:1;background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;font-size:16px;color:var(--text);outline:none;resize:none;height:72px;font-family:inherit"></textarea>
         <button onclick="submitIdea()" style="background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;align-self:flex-end">Envoyer</button>
       </div>
     </div>
@@ -4742,7 +4742,7 @@
                 </div>
               </div>`).join('')}
             <div style="display:flex;gap:6px;margin-top:6px">
-              <input id="comment-input-${idea.id}" type="text" placeholder="Ajouter un commentaire…" style="flex:1;background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px 10px;font-size:13px;color:var(--text);outline:none"/>
+              <input id="comment-input-${idea.id}" type="text" placeholder="Ajouter un commentaire…" style="flex:1;background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:8px 10px;font-size:16px;color:var(--text);outline:none"/>
               <button onclick="submitComment('${idea.id}')" style="background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer">Envoyer</button>
             </div>
           </div>` : '';
@@ -4795,7 +4795,7 @@
       const el = document.getElementById('idea-text-'+id);
       if (!el) return;
       el.innerHTML = `<div style="display:flex;gap:6px">
-        <input id="edit-idea-${id}" type="text" value="${idea.text.replace(/"/g,'&quot;')}" style="flex:1;background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:6px 10px;font-size:14px;color:var(--text);outline:none"/>
+        <input id="edit-idea-${id}" type="text" value="${idea.text.replace(/"/g,'&quot;')}" style="flex:1;background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:6px 10px;font-size:16px;color:var(--text);outline:none"/>
         <button onclick="saveEditIdea('${id}')" style="background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">✓</button>
         <button onclick="renderIdeas()" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;cursor:pointer">✕</button>
       </div>`;
@@ -5053,7 +5053,7 @@
       if (_tournoiEquipes.length === 0) _tournoiEquipes = ['','','',''];
       list.innerHTML = _tournoiEquipes.map((eq,i) => `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:${i<_tournoiEquipes.length-1?'1px solid var(--border)':'none'}">
         <div style="width:34px;height:34px;border-radius:50%;background:#fbbf2430;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fbbf24;flex-shrink:0">${i+1}</div>
-        <input value="${eq}" onchange="_tournoiEquipes[${i}]=this.value" placeholder="Nom de l'équipe..." style="flex:1;border:none;outline:none;font-size:13px;font-weight:700;font-family:inherit;color:#1a1d2e;background:transparent"/>
+        <input value="${eq}" onchange="_tournoiEquipes[${i}]=this.value" placeholder="Nom de l'équipe..." style="flex:1;border:none;outline:none;font-size:16px;font-weight:700;font-family:inherit;color:#1a1d2e;background:transparent"/>
         <div onclick="removeTournoiEquipe(${i})" style="color:#e0e3f0;font-size:16px;padding:4px;cursor:pointer">✕</div>
       </div>`).join('');
     }
